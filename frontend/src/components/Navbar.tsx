@@ -51,7 +51,14 @@ export default function Navbar() {
             >
               Servicios
             </Link>
-            
+
+            <Link
+              to="/reservar"
+              className="px-6 py-2 bg-[var(--rose-600)] text-white rounded-full hover:bg-[var(--rose-700)] transition-colors"
+            >
+              Reservar
+            </Link>
+
             {isAdmin && (
               <Link
                 to="/dashboard"
@@ -62,16 +69,9 @@ export default function Navbar() {
                 }`}
               >
                 <LayoutDashboard className="w-4 h-4" />
-                Panel de Control
+                Admin
               </Link>
             )}
-
-            <Link
-              to="/reservar"
-              className="px-6 py-2 bg-[var(--rose-600)] text-white rounded-full hover:bg-[var(--rose-700)] transition-colors"
-            >
-              Reservar
-            </Link>
 
             {user ? (
               <button

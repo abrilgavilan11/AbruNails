@@ -140,15 +140,6 @@ export default function Dashboard() {
             <span className="font-medium">Clientes</span>
           </button>
         </nav>
-
-        <div className="p-4 border-t border-[var(--rose-200)]">
-          <Link to="/">
-            <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-all cursor-pointer">
-              <LogOut className="w-5 h-5" />
-              <span className="font-medium">Cerrar Sesión</span>
-            </button>
-          </Link>
-        </div>
       </aside>
 
       <main className="flex-1 p-6 md:p-8 overflow-y-auto">
