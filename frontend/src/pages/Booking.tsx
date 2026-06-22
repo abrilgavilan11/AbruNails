@@ -25,7 +25,6 @@ export default function Booking() {
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
 
-  // Mismos servicios que en el catálogo
   const services: ServiceOption[] = [
     { id: "1", name: "Manicuría Clásica", duration: "45 min", price: "$15.000" },
     { id: "2", name: "Esmaltado Semipermanente", duration: "60 min", price: "$18.000" },
@@ -50,7 +49,6 @@ export default function Booking() {
     for (let i = 0; i < 14; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-      // Evitar domingos (0) en la lista si el local está cerrado
       if (date.getDay() !== 0) {
         dates.push(date);
       }
@@ -75,9 +73,7 @@ export default function Booking() {
   };
 
   const handleWhatsAppBooking = () => {
-    // Formatear la fecha para que se lea linda en WhatsApp
     const dateObj = new Date(selectedDate);
-    // Solución rápida para el desfasaje de zona horaria al crear new Date(YYYY-MM-DD)
     dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
     const formattedDate = dateObj.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 
@@ -90,7 +86,6 @@ export default function Booking() {
 
 ¿Me confirman si sigue disponible? ¡Gracias!`;
 
-    // Reemplaza los 0 por tu número real, manteniendo el 549299
     const whatsappUrl = `https://wa.me/5492995345386?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
   };
@@ -111,7 +106,6 @@ export default function Booking() {
   return (
     <div className="bg-background min-h-screen py-12 md:py-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="text-center mb-12">
           <Title level={1}>Reserva tu Turno</Title>
           <p className="text-lg text-[var(--rose-700)]">
@@ -119,7 +113,6 @@ export default function Booking() {
           </p>
         </div>
 
-        {/* Progress Steps */}
         <div className="mb-12">
           <div className="flex items-center justify-between max-w-2xl mx-auto">
             {[1, 2, 3, 4].map((step) => (
@@ -353,7 +346,6 @@ export default function Booking() {
             </div>
           )}
 
-          {/* Navigation Buttons */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-[var(--rose-200)]">
             <Button
               variant="outline"

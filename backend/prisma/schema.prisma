@@ -1,69 +1,55 @@
-// Configuración del generador del cliente de Prisma
 generator client {
-  provider = "prisma-client-factory" // O "prisma-client-js" estándar
+  provider = "prisma-client-js"
 }
 
-// Conexión a la base de datos PostgreSQL (usa la variable de entorno del archivo .env)
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-// 1. Tabla de Usuarios Administradores (Para tu Login Secreto)
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
-  password  String   // Contraseña que guardaremos encriptada con bcrypt
+  password  String 
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// 2. Tabla del Catálogo de Servicios
 model Service {
   id           String        @id @default(uuid())
   name         String
-  category     String        // "Manos", "Pies", "Tratamientos"
-  duration     Int           // Guardamos la duración en minutos (ej: 45, 60, 120) para operar más fácil
-  price        Float         // El precio como número flotante o decimal
-  description  String?       // Opcional
-  image        String?       // URL de la imagen de Unsplash o Cloudinary
-  status       String        @default("activo") // "activo" o "pausado"
-  appointments Appointment[] // Relación: Un servicio puede estar en muchos turnos
+  category     String        
+  duration     Int           
+  price        Float         
+  description  String?       
+  image        String?       
+  status       String        @default("activo")
+  appointments Appointment[] 
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
 
-// 3. Tabla de la Base de Clientes (Mini-CRM)
 model Client {
   id           String        @id @default(uuid())
   name         String
-  phone        String        // Prefijo completo sin espacios (ej: 549299...)
-  email        String?       @unique
+  phone        String
   isVIP        Boolean       @default(false)
-  notes        String?       // Notas internas (ej: "Alergias", "Preferencia uña cuadrada")
-  appointments Appointment[] // Relación: Una clienta puede sacar muchos turnos
+  visits       Int           @default(0)
   createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  
+  appointments Appointment[]
 }
 
-// 4. Tabla de la Agenda de Turnos
 model Appointment {
-  id             String   @id @default(uuid())
-  date           DateTime // Fecha del turno (YYYY-MM-DD)
-  time           String   // Hora del turno (ej: "14:00")
-  status         String   @default("pendiente") // "pendiente", "confirmado", "cancelado"
-  totalPrice     Float
-  professional   String   @default("Abril") // Por si más adelante sumás un equipo
+  id        String   @id @default(uuid())
+  date      DateTime 
+  status    String   @default("pendiente")
   
-  // Relación con la Clienta
-  clientId       String
-  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  
-  // Relación con el Servicio
-  serviceId      String
-  service        Service  @relation(fields: [serviceId], references: [id])
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id])
+
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id])
+
+  createdAt DateTime @default(now())
 }

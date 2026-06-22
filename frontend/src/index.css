@@ -5,3 +5,52 @@
 * {
   font-family: 'Merriweather Sans', sans-serif;
 }
+
+.rbc-today {
+  background-color: #fff1f2 !important;
+}
+
+.rbc-toolbar button {
+  color: #be123c !important;
+  border-color: #fecdd3 !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.rbc-toolbar button:hover {
+  background-color: #ffe4e6 !important;
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: #e11d48 !important;
+  color: white !important;
+  border-color: #e11d48 !important;
+  box-shadow: none !important;
+}
+
+.rbc-toolbar button:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px #fecdd3 !important;
+}
+
+.rbc-current-time-indicator {
+  background-color: #f43f5e !important;
+}
+
+.rbc-header,
+.rbc-time-view,
+.rbc-time-content,
+.rbc-time-header-content,
+.rbc-timeslot-group,
+.rbc-day-bg,
+.rbc-month-view,
+.rbc-month-row,
+.rbc-time-header.rbc-overflowing {
+  border-color: #ffe4e6 !important;
+}
+
+.rbc-header {
+  padding: 8px !important;
+  font-weight: 600 !important;
+  color: #881337 !important;
+}

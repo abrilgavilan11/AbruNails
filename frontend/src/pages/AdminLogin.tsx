@@ -14,7 +14,6 @@ export default function AdminLogin() {
   return (
     <div className="bg-background min-h-screen py-12 md:py-20 flex items-center">
       <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--rose-100)] rounded-full mb-4">
             <Shield className="w-8 h-8 text-[var(--rose-600)]" />
@@ -27,10 +26,8 @@ export default function AdminLogin() {
           </p>
         </div>
 
-        {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-lg border border-[var(--rose-200)] p-8">
           <form onSubmit={handleLogin} className="space-y-6">
-            {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-[var(--rose-900)] mb-2">
                 Correo Electrónico
@@ -51,7 +48,6 @@ export default function AdminLogin() {
               </div>
             </div>
 
-            {/* Password Field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-[var(--rose-900)] mb-2">
                 Contraseña
@@ -83,7 +79,6 @@ export default function AdminLogin() {
               </div>
             </div>
 
-            {/* Forgot Password Link */}
             <div className="flex items-center justify-end">
               <a
                 href="#"
@@ -93,7 +88,6 @@ export default function AdminLogin() {
               </a>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               className="w-full py-3 bg-[var(--rose-600)] text-white rounded-lg hover:bg-[var(--rose-700)] transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 cursor-pointer"
@@ -103,7 +97,6 @@ export default function AdminLogin() {
             </button>
           </form>
 
-          {/* Security Notice */}
           <div className="mt-6 p-4 bg-[#f8f5ff] rounded-lg">
             <div className="flex items-start gap-3">
               <Shield className="w-5 h-5 text-[var(--rose-600)] mt-0.5 flex-shrink-0" />
@@ -119,7 +112,6 @@ export default function AdminLogin() {
           </div>
         </div>
 
-        {/* Additional Information */}
         <div className="mt-6 text-center">
           <p className="text-xs text-[var(--rose-600)] mt-2">
             Soporte: admin@abrunails.com

@@ -14,13 +14,11 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-[var(--rose-200)] shadow-sm">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <Sparkles className="w-6 h-6 text-[var(--rose-600)]" />
             <span className="font-semibold text-xl text-[var(--rose-900)]">Abru Nails</span>
           </Link>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             <Link
               to="/"
@@ -61,7 +59,6 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             className="md:hidden p-2 text-[var(--rose-700)] cursor-pointer"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -70,7 +67,6 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Mobile Navigation */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-[var(--rose-200)]">
             <div className="flex flex-col gap-4">
