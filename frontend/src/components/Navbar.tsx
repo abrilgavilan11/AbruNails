@@ -1,13 +1,24 @@
-import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Sparkles, Lock } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu, X, Sparkles, Lock, LogOut, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  
+  const { user, logout } = useAuth();
+  const isAdmin = user?.role === "admin" || user?.role === "superusuario";
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const handleLogout = () => {
+    logout();
+    setMobileMenuOpen(false);
+    navigate("/");
   };
 
   return (
@@ -40,23 +51,49 @@ export default function Navbar() {
             >
               Servicios
             </Link>
+            
+            {isAdmin && (
+              <Link
+                to="/dashboard"
+                className={`flex items-center gap-2 transition-colors ${
+                  isActive("/dashboard")
+                    ? "text-[var(--rose-600)] font-medium"
+                    : "text-[var(--rose-700)] hover:text-[var(--rose-600)]"
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Panel de Control
+              </Link>
+            )}
+
             <Link
               to="/reservar"
               className="px-6 py-2 bg-[var(--rose-600)] text-white rounded-full hover:bg-[var(--rose-700)] transition-colors"
             >
               Reservar
             </Link>
-            <Link
-              to="/admin/login"
-              title="Portal Admin"
-              className={`p-2 rounded-full transition-colors ${
-                isActive("/admin/login")
-                  ? "bg-[var(--rose-100)] text-[var(--rose-600)]"
-                  : "text-[var(--rose-400)] hover:text-[var(--rose-600)] hover:bg-[var(--rose-50)]"
-              }`}
-            >
-              <Lock className="w-4 h-4" />
-            </Link>
+
+            {user ? (
+              <button
+                onClick={handleLogout}
+                title="Cerrar Sesión"
+                className="p-2 rounded-full text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            ) : (
+              <Link
+                to="/admin/login"
+                title="Portal Admin"
+                className={`p-2 rounded-full transition-colors ${
+                  isActive("/admin/login")
+                    ? "bg-[var(--rose-100)] text-[var(--rose-600)]"
+                    : "text-[var(--rose-400)] hover:text-[var(--rose-600)] hover:bg-[var(--rose-50)]"
+                }`}
+              >
+                <Lock className="w-4 h-4" />
+              </Link>
+            )}
           </div>
 
           <button
@@ -92,6 +129,22 @@ export default function Navbar() {
               >
                 Servicios
               </Link>
+
+              {isAdmin && (
+                <Link
+                  to="/dashboard"
+                  className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+                    isActive("/dashboard")
+                      ? "bg-[var(--rose-100)] text-[var(--rose-600)] font-medium"
+                      : "text-[var(--rose-700)] hover:bg-[var(--rose-50)]"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Panel de Control
+                </Link>
+              )}
+
               <Link
                 to="/reservar"
                 className="px-4 py-2 bg-[var(--rose-600)] text-white rounded-lg text-center hover:bg-[var(--rose-700)] transition-colors"
@@ -99,18 +152,29 @@ export default function Navbar() {
               >
                 Reservar
               </Link>
-              <Link
-                to="/admin/login"
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                  isActive("/admin/login")
-                    ? "bg-[var(--rose-100)] text-[var(--rose-600)] font-medium"
-                    : "text-[var(--rose-400)] hover:bg-[var(--rose-50)]"
-                }`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Lock className="w-4 h-4" />
-                Portal Admin
-              </Link>
+
+              {user ? (
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 rounded-lg flex items-center gap-2 text-red-500 hover:bg-red-50 font-medium text-left"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Cerrar Sesión ({user.name})
+                </button>
+              ) : (
+                <Link
+                  to="/admin/login"
+                  className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+                    isActive("/admin/login")
+                      ? "bg-[var(--rose-100)] text-[var(--rose-600)] font-medium"
+                      : "text-[var(--rose-400)] hover:bg-[var(--rose-50)]"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Lock className="w-4 h-4" />
+                  Portal Admin
+                </Link>
+              )}
             </div>
           </div>
         )}

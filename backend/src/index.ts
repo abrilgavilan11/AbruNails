@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import express, { Request, Response } from "express";
 import cors from "cors";
 import "dotenv/config";
@@ -219,6 +220,61 @@ app.delete("/api/appointments/:id", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error al eliminar turno:", error);
     res.status(500).json({ error: "No se pudo eliminar el turno" });
+  }
+});
+
+app.post("/api/auth/register", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { name, email, password, role } = req.body;
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: "El email ya está registrado" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: role || "cliente"
+      }
+    });
+
+    res.status(201).json({
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role
+    });
+  } catch (error) {
+    console.error("Error en registro:", error);
+    res.status(500).json({ error: "Error al registrar el usuario" });
+  }
+});
+
+app.post("/api/auth/login", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { email, password } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(401).json({ error: "Credenciales inválidas" });
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: "Credenciales inválidas" });
+    }
+
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    });
+  } catch (error) {
+    console.error("Error en login:", error);
+    res.status(500).json({ error: "Error al iniciar sesión" });
   }
 });
 

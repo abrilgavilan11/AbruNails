@@ -1,14 +1,48 @@
 import { useState } from "react";
-import { Lock, Mail, Shield, Eye, EyeOff } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Lock, Mail, Shield, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Esto es una demostración. En producción, esto se autenticaría con un backend seguro.");
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error al iniciar sesión");
+      }
+
+      login(data);
+
+      if (data.role === "admin" || data.role === "superusuario") {
+        navigate("/dashboard");
+      } else {
+        navigate("/");
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -27,6 +61,12 @@ export default function AdminLogin() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg border border-[var(--rose-200)] p-8">
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200 text-center font-medium">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-[var(--rose-900)] mb-2">
@@ -79,7 +119,13 @@ export default function AdminLogin() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end">
+            <div className="flex items-center justify-between">
+              <Link
+                to="/registro"
+                className="text-sm font-medium text-[var(--rose-600)] hover:text-[var(--rose-700)] transition-colors"
+              >
+                Crear cuenta
+              </Link>
               <a
                 href="#"
                 className="text-sm text-[var(--rose-600)] hover:text-[var(--rose-700)] transition-colors"
@@ -90,10 +136,20 @@ export default function AdminLogin() {
 
             <button
               type="submit"
-              className="w-full py-3 bg-[var(--rose-600)] text-white rounded-lg hover:bg-[var(--rose-700)] transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+              disabled={isLoading}
+              className="w-full py-3 bg-[var(--rose-600)] text-white rounded-lg hover:bg-[var(--rose-700)] transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:hover:scale-100"
             >
-              <Lock className="w-5 h-5" />
-              Ingreso Seguro
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Verificando...
+                </>
+              ) : (
+                <>
+                  <Lock className="w-5 h-5" />
+                  Ingreso Seguro
+                </>
+              )}
             </button>
           </form>
 
