@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Calendar, Clock, User, CheckCircle, MessageCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Calendar, Clock, User, CheckCircle, MessageCircle, Loader2, UserCircle, Phone } from "lucide-react";
 import Title from "../components/ui/Title";
 import Button from "../components/ui/Button";
 
@@ -10,6 +10,7 @@ interface ServiceOption {
   name: string;
   duration: string;
   price: string;
+  category: string;
 }
 
 interface Professional {
@@ -24,15 +25,37 @@ export default function Booking() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
+  
+  const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const services: ServiceOption[] = [
-    { id: "1", name: "Manicuría Clásica", duration: "45 min", price: "$15.000" },
-    { id: "2", name: "Esmaltado Semipermanente", duration: "60 min", price: "$18.000" },
-    { id: "3", name: "Esculpidas en Gel / Acrílico", duration: "120 min", price: "$25.000" },
-    { id: "4", name: "Service de Esculpidas", duration: "90 min", price: "$20.000" },
-    { id: "5", name: "Belleza de Pies Clásica", duration: "60 min", price: "$18.000" },
-    { id: "6", name: "Kapping Gel", duration: "45 min", price: "$16.000" },
-  ];
+  const [services, setServices] = useState<ServiceOption[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(true);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await fetch("http://localhost:3000/api/services");
+        if (!response.ok) throw new Error("Error al cargar los servicios");
+        
+        const data = await response.json();
+        const formattedServices: ServiceOption[] = data.map((service: any) => ({
+          id: service.id,
+          name: service.name,
+          duration: `${service.duration} min`,
+          price: `$${service.price.toLocaleString('es-AR')}`,
+          category: service.category?.name || "Otros"
+        }));
+        setServices(formattedServices);
+      } catch (error) {
+        console.error("Error trayendo servicios:", error);
+      } finally {
+        setIsLoadingServices(false);
+      }
+    };
+    fetchServices();
+  }, []);
 
   const professionals: Professional[] = [
     { id: "1", name: "Abril", specialty: "Especialista en Esculpidas y Nail Art" },
@@ -61,24 +84,52 @@ export default function Booking() {
   };
 
   const handleNext = () => {
-    if (currentStep < 4) {
-      setCurrentStep((currentStep + 1) as BookingStep);
-    }
+    if (currentStep < 4) setCurrentStep((currentStep + 1) as BookingStep);
   };
 
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep((currentStep - 1) as BookingStep);
-    }
+    if (currentStep > 1) setCurrentStep((currentStep - 1) as BookingStep);
   };
 
-  const handleWhatsAppBooking = () => {
-    const dateObj = new Date(selectedDate);
-    dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
-    const formattedDate = dateObj.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+  const handleWhatsAppBooking = async () => {
+    if (!clientName.trim() || !clientPhone.trim()) {
+      alert("Por favor, completá tu nombre y teléfono para agendar el turno.");
+      return;
+    }
 
-    const message = `¡Hola! Quería pedir un turno en Abru Nails 💅:
-    
+    setIsSubmitting(true);
+
+    try {
+      const clientRes = await fetch("http://localhost:3000/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: clientName, phone: clientPhone, isVIP: false }),
+      });
+      
+      if (!clientRes.ok) throw new Error("Error al registrar clienta");
+      const clientData = await clientRes.json();
+      const newClientId = clientData.data.id;
+
+      const dateTimeString = `${selectedDate}T${selectedTime}:00`;
+
+      const aptRes = await fetch("http://localhost:3000/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: newClientId,
+          serviceId: selectedService?.id,
+          date: dateTimeString,
+          status: "pendiente"
+        }),
+      });
+
+      if (!aptRes.ok) throw new Error("Error al registrar el turno");
+
+      const dateObj = new Date(dateTimeString);
+      const formattedDate = dateObj.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+
+      const message = `¡Hola! Soy ${clientName}, quería pedir un turno en Abru Nails 💅:
+      
 *Servicio:* ${selectedService?.name}
 *Fecha:* ${formattedDate}
 *Hora:* ${selectedTime} hs
@@ -86,20 +137,32 @@ export default function Booking() {
 
 ¿Me confirman si sigue disponible? ¡Gracias!`;
 
-    const whatsappUrl = `https://wa.me/5492995345386?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
+      const whatsappUrl = `https://wa.me/5492995345386?text=${encodeURIComponent(message)}`;
+      
+      setCurrentStep(1);
+      setSelectedService(null);
+      setSelectedDate("");
+      setSelectedTime("");
+      setClientName("");
+      setClientPhone("");
+      
+      window.open(whatsappUrl, "_blank");
+
+    } catch (error) {
+      console.error("Error en el proceso de reserva:", error);
+      alert("Hubo un error al procesar tu reserva. Por favor intentá nuevamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const canProceed = () => {
     switch (currentStep) {
-      case 1:
-        return selectedService !== null;
-      case 2:
-        return selectedDate !== "" && selectedTime !== "";
-      case 3:
-        return selectedProfessional !== null;
-      default:
-        return false;
+      case 1: return selectedService !== null;
+      case 2: return selectedDate !== "" && selectedTime !== "";
+      case 3: return selectedProfessional !== null;
+      case 4: return clientName.trim() !== "" && clientPhone.trim() !== "";
+      default: return false;
     }
   };
 
@@ -162,25 +225,52 @@ export default function Booking() {
                 </div>
                 <Title level={2} className="!mb-0">Elegí el Servicio</Title>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {services.map((service) => (
-                  <button
-                    key={service.id}
-                    onClick={() => setSelectedService(service)}
-                    className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                      selectedService?.id === service.id
-                        ? "border-[var(--rose-600)] bg-[var(--rose-50)] shadow-md transform scale-[1.02]"
-                        : "border-[var(--rose-200)] hover:border-[var(--rose-400)] hover:shadow-sm"
-                    }`}
-                  >
-                    <h3 className="font-semibold text-[var(--rose-900)] mb-1">{service.name}</h3>
-                    <div className="flex items-center justify-between text-sm text-[var(--rose-700)]">
-                      <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> {service.duration}</span>
-                      <span className="font-bold text-[var(--rose-600)]">{service.price}</span>
+
+              {isLoadingServices ? (
+                <div className="h-64 flex flex-col items-center justify-center text-[var(--rose-500)]">
+                  <Loader2 className="w-10 h-10 animate-spin mb-4" />
+                  <p className="font-medium text-[var(--rose-700)]">Cargando catálogo de servicios...</p>
+                </div>
+              ) : services.length === 0 ? (
+                <div className="h-64 flex flex-col items-center justify-center text-[var(--rose-500)] text-center">
+                  <p className="font-medium text-[var(--rose-700)]">No hay servicios disponibles en este momento.</p>
+                </div>
+              ) : (
+                <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                  {Object.entries(
+                    services.reduce((acc, service) => {
+                      if (!acc[service.category]) acc[service.category] = [];
+                      acc[service.category].push(service);
+                      return acc;
+                    }, {} as Record<string, ServiceOption[]>)
+                  ).map(([category, categoryServices]) => (
+                    <div key={category} className="space-y-3">
+                      <h3 className="text-[var(--rose-800)] font-bold border-b-2 border-[var(--rose-100)] pb-1 mb-3 sticky top-0 bg-white z-10 py-2">
+                        {category}
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {categoryServices.map((service) => (
+                          <button
+                            key={service.id}
+                            onClick={() => setSelectedService(service)}
+                            className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                              selectedService?.id === service.id
+                                ? "border-[var(--rose-600)] bg-[var(--rose-50)] shadow-md transform scale-[1.02]"
+                                : "border-[var(--rose-200)] hover:border-[var(--rose-400)] hover:shadow-sm"
+                            }`}
+                          >
+                            <h3 className="font-semibold text-[var(--rose-900)] mb-1">{service.name}</h3>
+                            <div className="flex items-center justify-between text-sm text-[var(--rose-700)]">
+                              <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> {service.duration}</span>
+                              <span className="font-bold">{service.price}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </button>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -273,50 +363,77 @@ export default function Booking() {
             </div>
           )}
 
-          {/* Step 4: Review & Confirm */}
+          {/* Step 4: Review, Details & Confirm */}
           {currentStep === 4 && (
             <div className="flex-grow">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-[var(--rose-100)] rounded-full flex items-center justify-center shadow-inner">
                   <CheckCircle className="w-6 h-6 text-[var(--rose-600)]" />
                 </div>
-                <Title level={2} className="!mb-0">Revisar y Confirmar</Title>
+                <Title level={2} className="!mb-0">Completá tus Datos</Title>
               </div>
 
-              <div className="space-y-4 mb-8">
-                <div className="p-4 border border-[var(--rose-200)] bg-[var(--rose-50)/50] rounded-xl flex justify-between items-center">
-                  <div>
-                    <div className="text-sm text-[var(--rose-700)] mb-1">Servicio seleccionado</div>
-                    <div className="font-semibold text-[var(--rose-900)] text-lg">
-                      {selectedService?.name}
-                    </div>
+              <div className="grid md:grid-cols-2 gap-8 mb-8">
+                {/* Resumen del turno */}
+                <div className="space-y-4">
+                  <div className="p-4 border border-[var(--rose-200)] bg-[var(--rose-50)/50] rounded-xl">
+                    <div className="text-sm text-[var(--rose-700)] mb-1">Servicio</div>
+                    <div className="font-semibold text-[var(--rose-900)] text-lg">{selectedService?.name}</div>
+                    <div className="font-bold text-[var(--rose-600)] mt-1">{selectedService?.price}</div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-bold text-[var(--rose-600)] text-xl">{selectedService?.price}</div>
-                    <div className="text-xs text-[var(--rose-700)]">{selectedService?.duration}</div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 border border-[var(--rose-200)] bg-[var(--rose-50)/50] rounded-xl">
+                      <div className="text-sm text-[var(--rose-700)] mb-1">Fecha y Hora</div>
+                      <div className="font-semibold text-[var(--rose-900)] capitalize">
+                        {selectedDate && (() => {
+                          const d = new Date(`${selectedDate}T${selectedTime}:00`);
+                          return d.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" });
+                        })()}
+                      </div>
+                      <div className="text-[var(--rose-600)] font-medium mt-1">{selectedTime} hs</div>
+                    </div>
+
+                    <div className="p-4 border border-[var(--rose-200)] bg-[var(--rose-50)/50] rounded-xl">
+                      <div className="text-sm text-[var(--rose-700)] mb-1">Profesional</div>
+                      <div className="font-semibold text-[var(--rose-900)]">{selectedProfessional?.name}</div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 border border-[var(--rose-200)] bg-[var(--rose-50)/50] rounded-xl">
-                    <div className="text-sm text-[var(--rose-700)] mb-1">Fecha y Hora</div>
-                    <div className="font-semibold text-[var(--rose-900)] capitalize">
-                      {selectedDate && (() => {
-                        const d = new Date(selectedDate);
-                        d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
-                        return d.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" });
-                      })()}
+                {/* Formulario de Contacto */}
+                <div className="space-y-4 bg-white p-5 border border-[var(--rose-200)] rounded-xl shadow-sm">
+                  <h3 className="font-bold text-[var(--rose-900)] border-b border-[var(--rose-100)] pb-2">Tus datos de contacto</h3>
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--rose-700)] mb-1">Nombre Completo</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <UserCircle className="h-5 w-5 text-[var(--rose-400)]" />
+                      </div>
+                      <input
+                        type="text"
+                        value={clientName}
+                        onChange={(e) => setClientName(e.target.value)}
+                        placeholder="Ej. Sofía Martínez"
+                        className="block w-full pl-10 pr-3 py-2.5 border-2 border-[var(--rose-200)] rounded-lg focus:ring-2 focus:ring-[var(--rose-400)] outline-none transition-all"
+                        required
+                      />
                     </div>
-                    <div className="text-[var(--rose-600)] font-medium mt-1">{selectedTime} hs</div>
                   </div>
-
-                  <div className="p-4 border border-[var(--rose-200)] bg-[var(--rose-50)/50] rounded-xl">
-                    <div className="text-sm text-[var(--rose-700)] mb-1">Profesional</div>
-                    <div className="font-semibold text-[var(--rose-900)]">
-                      {selectedProfessional?.name}
-                    </div>
-                    <div className="text-xs text-[var(--rose-700)] mt-1 truncate">
-                      {selectedProfessional?.specialty}
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--rose-700)] mb-1">Teléfono (WhatsApp)</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Phone className="h-5 w-5 text-[var(--rose-400)]" />
+                      </div>
+                      <input
+                        type="tel"
+                        value={clientPhone}
+                        onChange={(e) => setClientPhone(e.target.value)}
+                        placeholder="Ej. 299 123 4567"
+                        className="block w-full pl-10 pr-3 py-2.5 border-2 border-[var(--rose-200)] rounded-lg focus:ring-2 focus:ring-[var(--rose-400)] outline-none transition-all"
+                        required
+                      />
                     </div>
                   </div>
                 </div>
@@ -330,7 +447,7 @@ export default function Booking() {
                       Completar vía WhatsApp
                     </h3>
                     <p className="text-sm text-[var(--rose-700)] leading-relaxed">
-                      Al hacer clic en el botón, se abrirá WhatsApp con un mensaje pre-armado con los datos de tu turno. Te confirmaremos la reserva a la brevedad por ese medio.
+                      Al hacer clic, <strong>guardaremos tu turno en el sistema</strong> y se abrirá WhatsApp para que nos confirmes la reserva.
                     </p>
                   </div>
                 </div>
@@ -338,10 +455,14 @@ export default function Booking() {
 
               <Button
                 onClick={handleWhatsAppBooking}
-                className="w-full py-4 text-lg"
+                disabled={!canProceed() || isSubmitting}
+                className="w-full py-4 text-lg flex items-center justify-center gap-2 disabled:opacity-70"
               >
-                <MessageCircle className="w-5 h-5" />
-                Agendar por WhatsApp
+                {isSubmitting ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Procesando Reserva...</>
+                ) : (
+                  <><MessageCircle className="w-5 h-5" /> Agendar por WhatsApp</>
+                )}
               </Button>
             </div>
           )}
@@ -350,7 +471,7 @@ export default function Booking() {
             <Button
               variant="outline"
               onClick={handleBack}
-              disabled={currentStep === 1}
+              disabled={currentStep === 1 || isSubmitting}
               className={currentStep === 1 ? "opacity-50 cursor-not-allowed border-gray-300 text-gray-400 hover:bg-transparent hover:text-gray-400" : ""}
             >
               Atrás

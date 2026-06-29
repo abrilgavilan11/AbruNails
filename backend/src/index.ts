@@ -23,10 +23,68 @@ app.get("/", (_req: Request, res: Response) => {
   res.json({ message: "¡El servidor de Abru Nails está corriendo perfecto! 💅" });
 });
 
+// --- CATEGORIES ---
+
+app.get("/api/categories", async (_req: Request, res: Response) => {
+  try {
+    const categories = await prisma.category.findMany({
+      orderBy: { name: 'asc' }
+    });
+    res.json(categories);
+  } catch (error) {
+    console.error("Error al obtener categorias:", error);
+    res.status(500).json({ error: "Hubo un problema al cargar las categorías" });
+  }
+});
+
+app.post("/api/categories", async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    const newCategory = await prisma.category.create({
+      data: { name }
+    });
+    res.status(201).json({ message: "Categoría creada", data: newCategory });
+  } catch (error) {
+    console.error("Error al crear categoría:", error);
+    res.status(500).json({ error: "No se pudo crear la categoría" });
+  }
+});
+
+app.put("/api/categories/:id", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    const updatedCategory = await prisma.category.update({
+      where: { id: String(id) },
+      data: { name }
+    });
+    res.json({ message: "Categoría actualizada", data: updatedCategory });
+  } catch (error) {
+    console.error("Error al actualizar categoría:", error);
+    res.status(500).json({ error: "No se pudo actualizar la categoría" });
+  }
+});
+
+app.delete("/api/categories/:id", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.category.delete({
+      where: { id: String(id) }
+    });
+    res.json({ message: "Categoría eliminada" });
+  } catch (error) {
+    console.error("Error al eliminar categoría:", error);
+    res.status(500).json({ error: "No se pudo eliminar la categoría" });
+  }
+});
+
+// --- SERVICES ---
+
 app.get("/api/services", async (_req: Request, res: Response) => {
   try {
     const services = await prisma.service.findMany({
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
+      include: { category: true }
     });
     res.json(services);
   } catch (error) {
@@ -37,7 +95,7 @@ app.get("/api/services", async (_req: Request, res: Response) => {
 
 app.post("/api/services", async (req: Request, res: Response) => {
   try {
-    const { name, description, price, duration, category } = req.body;
+    const { name, description, price, duration, categoryId } = req.body;
 
     const newService = await prisma.service.create({
       data: {
@@ -45,7 +103,7 @@ app.post("/api/services", async (req: Request, res: Response) => {
         description: description || "",
         price: Number(price),
         duration: Number(duration),
-        category,
+        categoryId,
       }
     });
 
@@ -59,7 +117,7 @@ app.post("/api/services", async (req: Request, res: Response) => {
 app.put("/api/services/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, description, price, duration, category } = req.body;
+    const { name, description, price, duration, categoryId } = req.body;
 
     const updatedService = await prisma.service.update({
       where: { id: String(id) }, 
@@ -68,7 +126,7 @@ app.put("/api/services/:id", async (req: Request, res: Response) => {
         description: description || "",
         price: Number(price),
         duration: Number(duration),
-        category,
+        categoryId,
       }
     });
     res.json({ message: "Servicio actualizado", data: updatedService });
@@ -225,19 +283,30 @@ app.delete("/api/appointments/:id", async (req: Request, res: Response) => {
 
 app.post("/api/auth/register", async (req: Request, res: Response): Promise<any> => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, phone } = req.body;
+    
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ error: "El email ya está registrado" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        role: role || "cliente"
+        role: role || "cliente",
+        client: {
+          create: {
+            name: name,
+            phone: phone || "Sin especificar",
+          }
+        }
+      },
+      include: {
+        client: true 
       }
     });
 
@@ -245,7 +314,8 @@ app.post("/api/auth/register", async (req: Request, res: Response): Promise<any>
       id: newUser.id,
       name: newUser.name,
       email: newUser.email,
-      role: newUser.role
+      role: newUser.role,
+      clientId: newUser.client?.id
     });
   } catch (error) {
     console.error("Error en registro:", error);

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Clock, CalendarPlus, X, Info } from 'lucide-react';
 
 interface Service {
   id: string | number;
@@ -6,12 +8,14 @@ interface Service {
   description: string;
   price: number;
   duration: number;
-  category: string;
+  category?: { id: string; name: string };
+  image?: string | null;
 }
 
 export default function Catalog() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -33,55 +37,154 @@ export default function Catalog() {
 
   if (loading) {
     return (
-      <div className="py-20 flex items-center justify-center bg-rose-50">
+      <div className="py-20 flex items-center justify-center bg-rose-50 min-h-screen">
         <p className="text-xl text-rose-500 font-medium animate-pulse">Cargando catálogo...</p>
       </div>
     );
   }
 
+  const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=800&auto=format&fit=crop";
+
   return (
-    <div className="bg-rose-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
-      <div className="max-w-4xl mx-auto">
+    <div className="bg-rose-50 py-12 px-4 sm:px-6 lg:px-8 font-sans min-h-screen relative">
+      <div className="max-w-6xl mx-auto">
         <header className="mb-12 text-center">
           <h1 className="text-4xl font-bold text-rose-600 mb-3">Nuestro Catálogo</h1>
           <p className="text-gray-600 text-lg">Explorá nuestros servicios y preparate para brillar.</p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {services.length === 0 ? (
-            <p className="text-center col-span-2 text-gray-500">Todavía no hay servicios disponibles.</p>
+            <p className="text-center col-span-full text-gray-500">Todavía no hay servicios disponibles.</p>
           ) : (
             services.map((service) => (
               <div 
                 key={service.id} 
-                className="bg-white p-6 rounded-2xl shadow-sm border border-rose-100 hover:shadow-md transition-shadow flex flex-col justify-between"
+                onClick={() => setSelectedService(service)}
+                className="bg-white rounded-2xl shadow-sm border border-rose-100 hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between cursor-pointer overflow-hidden group"
               >
-                <div>
-                  <div className="flex justify-between items-start mb-3">
-                    <h2 className="text-xl font-bold text-gray-800">{service.name}</h2>
-                    <span className="bg-rose-100 text-rose-800 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">
-                      {service.category}
-                    </span>
+                {/* Imagen del servicio */}
+                <div className="w-full h-48 overflow-hidden relative">
+                  <img 
+                    src={service.image || DEFAULT_IMAGE} 
+                    alt={service.name} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-rose-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                    {service.category?.name || 'Sin Categoría'}
                   </div>
-                  <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                </div>
+
+                <div className="p-6 flex flex-col flex-grow">
+                  <h2 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-rose-600 transition-colors">
+                    {service.name}
+                  </h2>
+                  
+                  {/* Descripción corta */}
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2 leading-relaxed flex-grow">
                     {service.description}
                   </p>
-                </div>
-                
-                <div className="flex justify-between items-center border-t border-gray-100 pt-4 mt-auto">
-                  <div className="flex items-center text-gray-500 text-sm font-medium">
-                    <span className="mr-2">⏱️</span> 
-                    {service.duration} min
+                  
+                  <div className="flex justify-between items-center border-t border-gray-100 pt-4 mb-4">
+                    <span className="text-xl font-black text-rose-500">
+                      ${service.price.toLocaleString('es-AR')}
+                    </span>
                   </div>
-                  <span className="text-2xl font-black text-rose-500">
-                    ${service.price.toLocaleString('es-AR')}
-                  </span>
+                  
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedService(service);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 bg-rose-50 text-rose-600 border border-rose-200 py-2.5 px-4 rounded-xl font-medium hover:bg-rose-100 hover:border-rose-300 transition-colors"
+                  >
+                    <Info className="w-4 h-4" />
+                    Ver más detalles
+                  </button>
                 </div>
               </div>
             ))
           )}
         </div>
       </div>
+
+      {/* MODAL DE DETALLES */}
+      {selectedService && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setSelectedService(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Imagen Modal */}
+            <div className="w-full md:w-2/5 h-48 md:h-auto relative">
+              <img 
+                src={selectedService.image || DEFAULT_IMAGE} 
+                alt={selectedService.name} 
+                className="w-full h-full object-cover"
+              />
+              <button 
+                onClick={() => setSelectedService(null)}
+                className="absolute top-3 left-3 md:hidden bg-black/40 text-white p-1.5 rounded-full hover:bg-black/60 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Contenido Modal */}
+            <div className="p-6 md:p-8 w-full md:w-3/5 flex flex-col relative">
+              <button 
+                onClick={() => setSelectedService(null)}
+                className="hidden md:flex absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors bg-gray-100 p-2 rounded-full hover:bg-gray-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <span className="inline-block bg-rose-100 text-rose-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider w-fit mb-3">
+                {selectedService.category?.name || 'Sin Categoría'}
+              </span>
+
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                {selectedService.name}
+              </h2>
+
+              <p className="text-gray-600 mb-6 leading-relaxed flex-grow">
+                {selectedService.description}
+              </p>
+
+              <div className="space-y-3 bg-rose-50/50 p-4 rounded-2xl mb-6">
+                <div className="flex items-center justify-between text-gray-700">
+                  <div className="flex items-center gap-2 font-medium">
+                    <Clock className="w-5 h-5 text-rose-400" />
+                    Duración Estimada
+                  </div>
+                  <span className="font-bold">{selectedService.duration} min</span>
+                </div>
+                <div className="h-px bg-rose-200/60 w-full" />
+                <div className="flex items-center justify-between text-gray-700">
+                  <div className="flex items-center gap-2 font-medium">
+                    <span className="text-xl font-black text-rose-500">$</span>
+                    Precio
+                  </div>
+                  <span className="text-2xl font-black text-rose-500">
+                    ${selectedService.price.toLocaleString('es-AR')}
+                  </span>
+                </div>
+              </div>
+
+              <Link 
+                to="/reservar" 
+                className="w-full flex items-center justify-center gap-2 bg-rose-600 text-white py-3.5 px-4 rounded-xl font-bold hover:bg-rose-700 hover:shadow-lg hover:-translate-y-0.5 transition-all"
+              >
+                <CalendarPlus className="w-5 h-5" />
+                Reservar este turno
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

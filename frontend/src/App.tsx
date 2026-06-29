@@ -8,6 +8,7 @@ import Booking from './pages/Booking'
 import AdminLogin from "./pages/AdminLogin";
 import Registro from "./pages/Registro";
 import Dashboard from './pages/Dashboard'
+import MisTurnos from "./pages/MisTurnos";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/reservar" element={<Booking />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/registro" element={<Registro />} />
+          <Route path="/mis-turnos" element={<MisTurnos />} />
           <Route path="/dashboard" element={<Dashboard />} />
         </Route>
       </Routes>

@@ -1,19 +1,19 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import AgendaView from "../components/dashboard/AgendaView";
 import CatalogManager from "../components/dashboard/CatalogManager";
 import ClientManager from "../components/dashboard/ClientManager";
+import CategoryManager from "../components/dashboard/CategoryManager";
 import { 
   LayoutDashboard, 
   CalendarDays, 
   Scissors, 
-  LogOut, 
   Check, 
   X, 
   Clock, 
   Sparkles,
   TrendingUp,
-  Users
+  Users,
+  Tags
 } from "lucide-react";
 import Title from "../components/ui/Title";
 import Card from "../components/ui/Card";
@@ -35,10 +35,12 @@ export default function Dashboard() {
   const fetchAppointments = async () => {
     try {
       const response = await fetch("http://localhost:3000/api/appointments");
+      if (!response.ok) throw new Error("Error en la respuesta de la API");
       const data = await response.json();
-      setAppointments(data);
+      setAppointments(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error trayendo turnos:", error);
+      setAppointments([]); 
     } finally {
       setIsLoading(false);
     }
@@ -126,6 +128,18 @@ export default function Dashboard() {
           >
             <Scissors className="w-5 h-5" />
             <span className="font-medium">Catálogo</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab("categorias")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer ${
+              activeTab === "categorias" 
+                ? "bg-[var(--rose-600)] text-white shadow-md" 
+                : "text-[var(--rose-700)] hover:bg-[var(--rose-50)]"
+            }`}
+          >
+            <Tags className="w-5 h-5" />
+            <span className="font-medium">Categorías</span>
           </button>
 
           <button 
@@ -328,6 +342,17 @@ export default function Dashboard() {
                 <p className="text-[var(--rose-700)]">Historial y contacto de las personas que te eligen.</p>
               </header>
               <ClientManager />
+            </div>
+          )}
+
+          {/* VISTA: CATEGORÍAS           */}
+          {activeTab === "categorias" && (
+            <div className="animate-in fade-in duration-300">
+              <header className="mb-8">
+                <Title level={1}>Categorías</Title>
+                <p className="text-[var(--rose-700)]">Administrá las categorías de tus servicios.</p>
+              </header>
+              <CategoryManager />
             </div>
           )}
 

@@ -12,7 +12,12 @@ interface Service {
   description: string;
   price: number;
   duration: number;
-  category: string;
+  category?: { id: string; name: string };
+}
+
+interface Category {
+  id: string;
+  name: string;
 }
 
 export default function CatalogManager() {
@@ -21,7 +26,18 @@ export default function CatalogManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
+  const [categories, setCategories] = useState<Category[]>([]);
   const [editingService, setEditingService] = useState<Service | null>(null);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("http://localhost:3000/api/categories");
+      const data = await response.json();
+      setCategories(data);
+    } catch (error) {
+      console.error("Error cargando categorías:", error);
+    }
+  };
 
   const fetchServices = async () => {
     try {
@@ -37,6 +53,7 @@ export default function CatalogManager() {
 
   useEffect(() => {
     fetchServices();
+    fetchCategories();
   }, []);
 
   const openCreateModal = () => {
@@ -71,7 +88,7 @@ export default function CatalogManager() {
     
     const serviceData = {
       name: formData.get("name"),
-      category: formData.get("category"),
+      categoryId: formData.get("categoryId"),
       duration: formData.get("duration"),
       price: formData.get("price"),
       description: formData.get("description"),
@@ -100,7 +117,7 @@ export default function CatalogManager() {
 
   const filteredServices = services.filter(service => 
     service.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    service.category.toLowerCase().includes(searchTerm.toLowerCase())
+    service.category?.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -157,7 +174,7 @@ export default function CatalogManager() {
                     <td className="p-4 font-medium text-[var(--rose-900)]">{service.name}</td>
                     <td className="p-4 text-[var(--rose-700)]">
                       <span className="bg-[var(--rose-100)] text-[var(--rose-800)] px-2 py-1 rounded text-xs font-semibold uppercase">
-                        {service.category}
+                        {service.category?.name || 'Sin Categoría'}
                       </span>
                     </td>
                     <td className="p-4 text-[var(--rose-700)]">{service.duration} min</td>
@@ -201,10 +218,11 @@ export default function CatalogManager() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Categoría</Label>
-              <select name="category" defaultValue={editingService?.category || "Manos"} className="block w-full px-4 py-3 border-2 border-[var(--rose-200)] rounded-lg focus:ring-2 focus:ring-[var(--rose-400)] focus:border-[var(--rose-600)] bg-white outline-none">
-                <option value="Manos">Manos</option>
-                <option value="Pies">Pies</option>
-                <option value="Tratamientos">Tratamientos</option>
+              <select name="categoryId" defaultValue={editingService?.category?.id || ""} className="block w-full px-4 py-3 border-2 border-[var(--rose-200)] rounded-lg focus:ring-2 focus:ring-[var(--rose-400)] focus:border-[var(--rose-600)] bg-white outline-none" required>
+                <option value="" disabled>Seleccionar Categoría</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
               </select>
             </div>
             <div>
