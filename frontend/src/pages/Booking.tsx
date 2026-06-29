@@ -1,16 +1,23 @@
 import { useState, useEffect } from "react";
-import { Calendar, Clock, User, CheckCircle, MessageCircle, Loader2, UserCircle, Phone } from "lucide-react";
+import { Calendar, Clock, User, CheckCircle, MessageCircle, Loader2, UserCircle, Phone, PlusSquare, Plus } from "lucide-react";
 import Title from "../components/ui/Title";
 import Button from "../components/ui/Button";
 
-type BookingStep = 1 | 2 | 3 | 4;
+type BookingStep = 1 | 2 | 3 | 4 | 5;
 
 interface ServiceOption {
   id: string;
   name: string;
-  duration: string;
-  price: string;
+  duration: number; // now numeric for math
+  price: number; // now numeric
   category: string;
+}
+
+interface Addon {
+  id: string;
+  name: string;
+  price: number;
+  duration: number;
 }
 
 interface Professional {
@@ -22,6 +29,7 @@ interface Professional {
 export default function Booking() {
   const [currentStep, setCurrentStep] = useState<BookingStep>(1);
   const [selectedService, setSelectedService] = useState<ServiceOption | null>(null);
+  const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
@@ -31,39 +39,75 @@ export default function Booking() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [services, setServices] = useState<ServiceOption[]>([]);
+  const [addons, setAddons] = useState<Addon[]>([]);
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  
   const [isLoadingServices, setIsLoadingServices] = useState(true);
+  const [isLoadingAddons, setIsLoadingAddons] = useState(true);
+  const [isLoadingTimes, setIsLoadingTimes] = useState(false);
 
   useEffect(() => {
-    const fetchServices = async () => {
+    const fetchServicesAndAddons = async () => {
       try {
-        const response = await fetch("http://localhost:3000/api/services");
-        if (!response.ok) throw new Error("Error al cargar los servicios");
+        const [servRes, addRes] = await Promise.all([
+          fetch("http://localhost:3000/api/services"),
+          fetch("http://localhost:3000/api/addons")
+        ]);
         
-        const data = await response.json();
-        const formattedServices: ServiceOption[] = data.map((service: any) => ({
-          id: service.id,
-          name: service.name,
-          duration: `${service.duration} min`,
-          price: `$${service.price.toLocaleString('es-AR')}`,
-          category: service.category?.name || "Otros"
-        }));
-        setServices(formattedServices);
+        if (servRes.ok) {
+          const data = await servRes.json();
+          const formattedServices: ServiceOption[] = data.map((service: any) => ({
+            id: service.id,
+            name: service.name,
+            duration: service.duration,
+            price: service.price,
+            category: service.category?.name || "Otros"
+          }));
+          setServices(formattedServices);
+        }
+
+        if (addRes.ok) {
+          const data = await addRes.json();
+          setAddons(data);
+        }
       } catch (error) {
-        console.error("Error trayendo servicios:", error);
+        console.error("Error trayendo datos:", error);
       } finally {
         setIsLoadingServices(false);
+        setIsLoadingAddons(false);
       }
     };
-    fetchServices();
+    fetchServicesAndAddons();
   }, []);
+
+  const totalDuration = (selectedService?.duration || 0) + selectedAddons.reduce((acc, a) => acc + a.duration, 0);
+  const totalPrice = (selectedService?.price || 0) + selectedAddons.reduce((acc, a) => acc + a.price, 0);
+
+  useEffect(() => {
+    if (selectedDate && totalDuration > 0) {
+      const fetchAvailability = async () => {
+        setIsLoadingTimes(true);
+        try {
+          const response = await fetch(`http://localhost:3000/api/availability?date=${selectedDate}&duration=${totalDuration}`);
+          if (response.ok) {
+            const data = await response.json();
+            setAvailableTimes(data.slots || []);
+          }
+        } catch (error) {
+          console.error("Error fetching availability:", error);
+        } finally {
+          setIsLoadingTimes(false);
+        }
+      };
+      fetchAvailability();
+    } else {
+      setAvailableTimes([]);
+    }
+  }, [selectedDate, totalDuration]);
 
   const professionals: Professional[] = [
     { id: "1", name: "Abril", specialty: "Especialista en Esculpidas y Nail Art" },
     { id: "2", name: "Cualquier Profesional", specialty: "Primer turno disponible" },
-  ];
-
-  const availableTimes = [
-    "09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00",
   ];
 
   const generateDates = () => {
@@ -84,11 +128,19 @@ export default function Booking() {
   };
 
   const handleNext = () => {
-    if (currentStep < 4) setCurrentStep((currentStep + 1) as BookingStep);
+    if (currentStep < 5) setCurrentStep((currentStep + 1) as BookingStep);
   };
 
   const handleBack = () => {
     if (currentStep > 1) setCurrentStep((currentStep - 1) as BookingStep);
+  };
+
+  const toggleAddon = (addon: Addon) => {
+    if (selectedAddons.find(a => a.id === addon.id)) {
+      setSelectedAddons(selectedAddons.filter(a => a.id !== addon.id));
+    } else {
+      setSelectedAddons([...selectedAddons, addon]);
+    }
   };
 
   const handleWhatsAppBooking = async () => {
@@ -118,6 +170,7 @@ export default function Booking() {
         body: JSON.stringify({
           clientId: newClientId,
           serviceId: selectedService?.id,
+          addonIds: selectedAddons.map(a => a.id),
           date: dateTimeString,
           status: "pendiente"
         }),
@@ -127,10 +180,15 @@ export default function Booking() {
 
       const dateObj = new Date(dateTimeString);
       const formattedDate = dateObj.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+      
+      let addonText = "";
+      if (selectedAddons.length > 0) {
+        addonText = `\n*Extras:* ${selectedAddons.map(a => a.name).join(", ")}`;
+      }
 
       const message = `¡Hola! Soy ${clientName}, quería pedir un turno en Abru Nails 💅:
       
-*Servicio:* ${selectedService?.name}
+*Servicio:* ${selectedService?.name}${addonText}
 *Fecha:* ${formattedDate}
 *Hora:* ${selectedTime} hs
 *Profesional:* ${selectedProfessional?.name}
@@ -141,6 +199,7 @@ export default function Booking() {
       
       setCurrentStep(1);
       setSelectedService(null);
+      setSelectedAddons([]);
       setSelectedDate("");
       setSelectedTime("");
       setClientName("");
@@ -159,9 +218,10 @@ export default function Booking() {
   const canProceed = () => {
     switch (currentStep) {
       case 1: return selectedService !== null;
-      case 2: return selectedDate !== "" && selectedTime !== "";
-      case 3: return selectedProfessional !== null;
-      case 4: return clientName.trim() !== "" && clientPhone.trim() !== "";
+      case 2: return true; // Addons are optional
+      case 3: return selectedDate !== "" && selectedTime !== "";
+      case 4: return selectedProfessional !== null;
+      case 5: return clientName.trim() !== "" && clientPhone.trim() !== "";
       default: return false;
     }
   };
@@ -176,35 +236,36 @@ export default function Booking() {
           </p>
         </div>
 
-        <div className="mb-12">
-          <div className="flex items-center justify-between max-w-2xl mx-auto">
-            {[1, 2, 3, 4].map((step) => (
+        <div className="mb-12 overflow-x-auto pb-4 custom-scrollbar">
+          <div className="flex items-center justify-between min-w-[600px] mx-auto px-4">
+            {[1, 2, 3, 4, 5].map((step) => (
               <div key={step} className="flex items-center flex-1 last:flex-none">
-                <div className="flex flex-col items-center flex-1">
+                <div className="flex flex-col items-center flex-1 relative z-10">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
                       step <= currentStep
                         ? "bg-[var(--rose-600)] text-white shadow-md"
-                        : "bg-[var(--rose-200)] text-[var(--rose-700)]"
+                        : "bg-white text-[var(--rose-400)] border-2 border-[var(--rose-200)]"
                     }`}
                   >
                     {step}
                   </div>
                   <div
-                    className={`text-xs mt-2 text-center font-medium ${
-                      step <= currentStep ? "text-[var(--rose-900)]" : "text-[var(--rose-600)]"
+                    className={`text-xs mt-2 text-center font-bold ${
+                      step <= currentStep ? "text-[var(--rose-900)]" : "text-[var(--rose-400)]"
                     }`}
                   >
                     {step === 1 && "Servicio"}
-                    {step === 2 && "Fecha/Hora"}
-                    {step === 3 && "Profesional"}
-                    {step === 4 && "Confirmar"}
+                    {step === 2 && "Extras"}
+                    {step === 3 && "Fecha"}
+                    {step === 4 && "Profesional"}
+                    {step === 5 && "Confirmar"}
                   </div>
                 </div>
-                {step < 4 && (
+                {step < 5 && (
                   <div
-                    className={`h-1 flex-1 mx-2 rounded-full ${
-                      step < currentStep ? "bg-[var(--rose-600)]" : "bg-[var(--rose-200)]"
+                    className={`h-1 flex-1 -mx-4 ${
+                      step < currentStep ? "bg-[var(--rose-600)]" : "bg-[var(--rose-100)]"
                     }`}
                   />
                 )}
@@ -213,17 +274,16 @@ export default function Booking() {
           </div>
         </div>
 
-        {/* Step Content */}
         <div className="bg-white rounded-2xl shadow-lg border border-[var(--rose-200)] p-6 md:p-8 min-h-[500px] flex flex-col">
           
           {/* Step 1: Select Service */}
           {currentStep === 1 && (
-            <div className="flex-grow">
+            <div className="flex-grow animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-[var(--rose-100)] rounded-full flex items-center justify-center shadow-inner">
                   <Calendar className="w-6 h-6 text-[var(--rose-600)]" />
                 </div>
-                <Title level={2} className="!mb-0">Elegí el Servicio</Title>
+                <Title level={2} className="!mb-0">Elegí el Servicio Principal</Title>
               </div>
 
               {isLoadingServices ? (
@@ -236,7 +296,7 @@ export default function Booking() {
                   <p className="font-medium text-[var(--rose-700)]">No hay servicios disponibles en este momento.</p>
                 </div>
               ) : (
-                <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                   {Object.entries(
                     services.reduce((acc, service) => {
                       if (!acc[service.category]) acc[service.category] = [];
@@ -261,8 +321,8 @@ export default function Booking() {
                           >
                             <h3 className="font-semibold text-[var(--rose-900)] mb-1">{service.name}</h3>
                             <div className="flex items-center justify-between text-sm text-[var(--rose-700)]">
-                              <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> {service.duration}</span>
-                              <span className="font-bold">{service.price}</span>
+                              <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> {service.duration} min</span>
+                              <span className="font-bold text-[var(--rose-600)]">${service.price.toLocaleString('es-AR')}</span>
                             </div>
                           </button>
                         ))}
@@ -274,14 +334,74 @@ export default function Booking() {
             </div>
           )}
 
-          {/* Step 2: Select Date & Time */}
+          {/* Step 2: Select Addons */}
           {currentStep === 2 && (
-            <div className="flex-grow">
+            <div className="flex-grow animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-[var(--rose-100)] rounded-full flex items-center justify-center shadow-inner">
+                  <PlusSquare className="w-6 h-6 text-[var(--rose-600)]" />
+                </div>
+                <div>
+                  <Title level={2} className="!mb-0">Agregá Extras</Title>
+                  <p className="text-sm text-[var(--rose-600)] mt-1">Seleccioná opciones adicionales si las necesitás (Opcional)</p>
+                </div>
+              </div>
+
+              {isLoadingAddons ? (
+                <div className="h-64 flex flex-col items-center justify-center text-[var(--rose-500)]">
+                  <Loader2 className="w-10 h-10 animate-spin mb-4" />
+                </div>
+              ) : addons.length === 0 ? (
+                <div className="h-64 flex flex-col items-center justify-center text-[var(--rose-500)] text-center">
+                  <p className="font-medium text-[var(--rose-700)]">No hay adicionales disponibles.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  {addons.map((addon) => {
+                    const isSelected = selectedAddons.find(a => a.id === addon.id);
+                    return (
+                      <button
+                        key={addon.id}
+                        onClick={() => toggleAddon(addon)}
+                        className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? "border-[var(--rose-600)] bg-[var(--rose-50)] shadow-sm"
+                            : "border-[var(--rose-200)] hover:border-[var(--rose-400)] hover:bg-[var(--rose-50)/50]"
+                        }`}
+                      >
+                        <div>
+                          <h3 className="font-bold text-[var(--rose-900)] text-lg flex items-center gap-2">
+                            {addon.name}
+                          </h3>
+                          <div className="flex items-center gap-4 text-sm mt-1">
+                            <span className="text-[var(--rose-600)] font-semibold">+${addon.price.toLocaleString('es-AR')}</span>
+                            <span className="text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3"/> +{addon.duration} min</span>
+                          </div>
+                        </div>
+                        <div className={`w-6 h-6 rounded-md border flex items-center justify-center transition-colors ${
+                          isSelected ? "bg-[var(--rose-600)] border-[var(--rose-600)] text-white" : "border-gray-300"
+                        }`}>
+                          {isSelected && <CheckCircle className="w-4 h-4" />}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 3: Select Date & Time */}
+          {currentStep === 3 && (
+            <div className="flex-grow animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-[var(--rose-100)] rounded-full flex items-center justify-center shadow-inner">
                   <Clock className="w-6 h-6 text-[var(--rose-600)]" />
                 </div>
-                <Title level={2} className="!mb-0">Elegí Fecha y Hora</Title>
+                <div>
+                  <Title level={2} className="!mb-0">Elegí Fecha y Hora</Title>
+                  <p className="text-sm text-[var(--rose-600)] mt-1">Calculamos {totalDuration} minutos exactos para tu turno</p>
+                </div>
               </div>
 
               <div className="space-y-6">
@@ -293,11 +413,11 @@ export default function Booking() {
                       return (
                         <button
                           key={index}
-                          onClick={() => setSelectedDate(dateStr)}
+                          onClick={() => { setSelectedDate(dateStr); setSelectedTime(""); }}
                           className={`p-3 rounded-lg border-2 text-center transition-all text-sm capitalize cursor-pointer ${
                             selectedDate === dateStr
-                              ? "border-[var(--rose-600)] bg-[var(--rose-50)] font-bold shadow-sm"
-                              : "border-[var(--rose-200)] hover:border-[var(--rose-400)]"
+                              ? "border-[var(--rose-600)] bg-[var(--rose-600)] text-white font-bold shadow-sm"
+                              : "border-[var(--rose-200)] text-[var(--rose-900)] hover:border-[var(--rose-400)]"
                           }`}
                         >
                           {formatDate(date)}
@@ -312,30 +432,42 @@ export default function Booking() {
                     <h3 className="font-semibold text-[var(--rose-900)] mb-3">
                       Horarios Disponibles
                     </h3>
-                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
-                      {availableTimes.map((time) => (
-                        <button
-                          key={time}
-                          onClick={() => setSelectedTime(time)}
-                          className={`p-3 rounded-lg border-2 text-center transition-all text-sm cursor-pointer ${
-                            selectedTime === time
-                              ? "border-[var(--rose-600)] bg-[var(--rose-50)] font-bold shadow-sm"
-                              : "border-[var(--rose-200)] hover:border-[var(--rose-400)]"
-                          }`}
-                        >
-                          {time}
-                        </button>
-                      ))}
-                    </div>
+                    
+                    {isLoadingTimes ? (
+                      <div className="py-8 flex flex-col items-center justify-center text-[var(--rose-500)]">
+                        <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                        <span className="text-sm">Buscando lugares...</span>
+                      </div>
+                    ) : availableTimes.length === 0 ? (
+                      <div className="py-8 text-center bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-medium">
+                        No hay horarios disponibles para esta fecha con el tiempo requerido ({totalDuration} min).
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                        {availableTimes.map((time) => (
+                          <button
+                            key={time}
+                            onClick={() => setSelectedTime(time)}
+                            className={`p-3 rounded-lg border-2 text-center transition-all text-sm cursor-pointer ${
+                              selectedTime === time
+                                ? "border-[var(--rose-600)] bg-[var(--rose-50)] text-[var(--rose-900)] font-bold shadow-sm"
+                                : "border-[var(--rose-200)] text-gray-700 hover:border-[var(--rose-400)] hover:bg-[var(--rose-50)/30]"
+                            }`}
+                          >
+                            {time}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* Step 3: Select Professional */}
-          {currentStep === 3 && (
-            <div className="flex-grow">
+          {/* Step 4: Select Professional */}
+          {currentStep === 4 && (
+            <div className="flex-grow animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-[var(--rose-100)] rounded-full flex items-center justify-center shadow-inner">
                   <User className="w-6 h-6 text-[var(--rose-600)]" />
@@ -363,9 +495,9 @@ export default function Booking() {
             </div>
           )}
 
-          {/* Step 4: Review, Details & Confirm */}
-          {currentStep === 4 && (
-            <div className="flex-grow">
+          {/* Step 5: Review & Confirm */}
+          {currentStep === 5 && (
+            <div className="flex-grow animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-[var(--rose-100)] rounded-full flex items-center justify-center shadow-inner">
                   <CheckCircle className="w-6 h-6 text-[var(--rose-600)]" />
@@ -376,10 +508,42 @@ export default function Booking() {
               <div className="grid md:grid-cols-2 gap-8 mb-8">
                 {/* Resumen del turno */}
                 <div className="space-y-4">
-                  <div className="p-4 border border-[var(--rose-200)] bg-[var(--rose-50)/50] rounded-xl">
-                    <div className="text-sm text-[var(--rose-700)] mb-1">Servicio</div>
-                    <div className="font-semibold text-[var(--rose-900)] text-lg">{selectedService?.name}</div>
-                    <div className="font-bold text-[var(--rose-600)] mt-1">{selectedService?.price}</div>
+                  <div className="p-4 border border-[var(--rose-200)] bg-white shadow-sm rounded-xl">
+                    <div className="flex justify-between items-start border-b border-[var(--rose-100)] pb-3 mb-3">
+                      <div>
+                        <div className="text-sm text-[var(--rose-700)] font-medium mb-1">Servicio Base</div>
+                        <div className="font-bold text-[var(--rose-900)] text-lg">{selectedService?.name}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-gray-500">{selectedService?.duration} min</div>
+                        <div className="font-bold text-[var(--rose-600)]">${selectedService?.price.toLocaleString('es-AR')}</div>
+                      </div>
+                    </div>
+                    
+                    {selectedAddons.length > 0 && (
+                      <div className="border-b border-[var(--rose-100)] pb-3 mb-3">
+                        <div className="text-sm text-[var(--rose-700)] font-medium mb-2">Adicionales Elegidos</div>
+                        <div className="space-y-2">
+                          {selectedAddons.map(addon => (
+                            <div key={addon.id} className="flex justify-between items-center text-sm">
+                              <span className="text-gray-700 flex items-center gap-1"><Plus className="w-3 h-3 text-[var(--rose-400)]"/> {addon.name}</span>
+                              <div className="flex items-center gap-3">
+                                <span className="text-gray-500 text-xs">+{addon.duration} min</span>
+                                <span className="font-medium text-[var(--rose-600)]">+${addon.price.toLocaleString('es-AR')}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-between items-center pt-1">
+                      <span className="font-bold text-[var(--rose-900)] uppercase text-sm">Total Estimado</span>
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500 font-medium mb-0.5">{totalDuration} min aprox</div>
+                        <div className="font-black text-[var(--rose-700)] text-xl">${totalPrice.toLocaleString('es-AR')}</div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -391,7 +555,7 @@ export default function Booking() {
                           return d.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" });
                         })()}
                       </div>
-                      <div className="text-[var(--rose-600)] font-medium mt-1">{selectedTime} hs</div>
+                      <div className="text-[var(--rose-600)] font-bold mt-1">{selectedTime} hs</div>
                     </div>
 
                     <div className="p-4 border border-[var(--rose-200)] bg-[var(--rose-50)/50] rounded-xl">
@@ -467,6 +631,7 @@ export default function Booking() {
             </div>
           )}
 
+          {/* Footer Controls */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-[var(--rose-200)]">
             <Button
               variant="outline"
@@ -477,7 +642,7 @@ export default function Booking() {
               Atrás
             </Button>
 
-            {currentStep < 4 && (
+            {currentStep < 5 && (
               <Button
                 onClick={handleNext}
                 disabled={!canProceed()}

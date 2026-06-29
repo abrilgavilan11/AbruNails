@@ -32,6 +32,8 @@ interface AppointmentEvent {
   serviceName: string;
   price: number;
   status: string;
+  addons: any[];
+  totalDuration: number;
 }
 
 interface Client {
@@ -75,7 +77,7 @@ export default function AgendaView() {
 
       const formattedEvents = aptsData.map((apt: any) => {
         const startDate = new Date(apt.date);
-        const durationInMs = apt.service.duration * 60 * 1000; 
+        const durationInMs = (apt.totalDuration || apt.service.duration) * 60 * 1000; 
         const endDate = new Date(startDate.getTime() + durationInMs);
 
         return {
@@ -87,8 +89,10 @@ export default function AgendaView() {
           clientName: apt.client.name,
           clientPhone: apt.client.phone,
           serviceName: apt.service.name,
-          price: apt.service.price,
-          status: apt.status
+          price: apt.totalPrice || apt.service.price,
+          status: apt.status,
+          addons: apt.addons || [],
+          totalDuration: apt.totalDuration || apt.service.duration
         };
       });
 
@@ -295,21 +299,38 @@ export default function AgendaView() {
               <div className="flex items-center gap-3 text-gray-700">
                 <div className="p-2 bg-[var(--rose-50)] rounded-lg text-[var(--rose-600)]"><Clock className="w-5 h-5"/></div>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase font-semibold">Horario</p>
+                  <p className="text-xs text-gray-400 uppercase font-semibold">Horario y Duración</p>
                   <p className="font-medium">
                     {selectedEvent.start.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} <br/>
                     <span className="text-[var(--rose-600)] font-bold">
                       {selectedEvent.start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} hs
-                    </span>
+                    </span> 
+                    <span className="text-gray-500 ml-2">({selectedEvent.totalDuration} min)</span>
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 text-gray-700">
+              {selectedEvent.addons && selectedEvent.addons.length > 0 && (
+                <div className="flex items-start gap-3 text-gray-700 mt-2">
+                  <div className="p-2 bg-[var(--rose-50)] rounded-lg text-[var(--rose-600)] mt-1"><Plus className="w-5 h-5"/></div>
+                  <div className="w-full">
+                    <p className="text-xs text-gray-400 uppercase font-semibold mb-2">Adicionales</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedEvent.addons.map((addon: any) => (
+                        <span key={addon.id} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-lg text-sm border border-gray-200">
+                          {addon.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 text-gray-700 mt-2 border-t border-[var(--rose-100)] pt-4">
                 <div className="p-2 bg-[var(--rose-50)] rounded-lg text-[var(--rose-600)]"><DollarSign className="w-5 h-5"/></div>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase font-semibold">Precio Base</p>
-                  <p className="font-medium">${selectedEvent.price.toLocaleString('es-AR')}</p>
+                  <p className="text-xs text-gray-400 uppercase font-semibold">Total a Cobrar</p>
+                  <p className="text-lg font-bold text-[var(--rose-900)]">${selectedEvent.price.toLocaleString('es-AR')}</p>
                 </div>
               </div>
             </div>

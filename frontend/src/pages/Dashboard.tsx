@@ -3,6 +3,8 @@ import AgendaView from "../components/dashboard/AgendaView";
 import CatalogManager from "../components/dashboard/CatalogManager";
 import ClientManager from "../components/dashboard/ClientManager";
 import CategoryManager from "../components/dashboard/CategoryManager";
+import AddonManager from "../components/dashboard/AddonManager";
+import SettingsManager from "../components/dashboard/SettingsManager";
 import { 
   LayoutDashboard, 
   CalendarDays, 
@@ -13,7 +15,9 @@ import {
   Sparkles,
   TrendingUp,
   Users,
-  Tags
+  Tags,
+  PlusSquare,
+  Settings
 } from "lucide-react";
 import Title from "../components/ui/Title";
 import Card from "../components/ui/Card";
@@ -143,6 +147,18 @@ export default function Dashboard() {
           </button>
 
           <button 
+            onClick={() => setActiveTab("adicionales")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer ${
+              activeTab === "adicionales" 
+                ? "bg-[var(--rose-600)] text-white shadow-md" 
+                : "text-[var(--rose-700)] hover:bg-[var(--rose-50)]"
+            }`}
+          >
+            <PlusSquare className="w-5 h-5" />
+            <span className="font-medium">Adicionales</span>
+          </button>
+
+          <button 
             onClick={() => setActiveTab("clientes")}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer ${
               activeTab === "clientes" 
@@ -152,6 +168,18 @@ export default function Dashboard() {
           >
             <Users className="w-5 h-5" />
             <span className="font-medium">Clientes</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab("configuracion")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer ${
+              activeTab === "configuracion" 
+                ? "bg-[var(--rose-600)] text-white shadow-md" 
+                : "text-[var(--rose-700)] hover:bg-[var(--rose-50)]"
+            }`}
+          >
+            <Settings className="w-5 h-5" />
+            <span className="font-medium">Configuración</span>
           </button>
         </nav>
       </aside>
@@ -353,6 +381,24 @@ export default function Dashboard() {
                 <p className="text-[var(--rose-700)]">Administrá las categorías de tus servicios.</p>
               </header>
               <CategoryManager />
+            </div>
+          )}
+
+          {/* VISTA: ADICIONALES           */}
+          {activeTab === "adicionales" && (
+            <div className="animate-in fade-in duration-300">
+              <header className="mb-8">
+                <Title level={1}>Adicionales y Extras</Title>
+                <p className="text-[var(--rose-700)]">Gestioná los opcionales como retiro o nail art.</p>
+              </header>
+              <AddonManager />
+            </div>
+          )}
+
+          {/* VISTA: CONFIGURACIÓN           */}
+          {activeTab === "configuracion" && (
+            <div className="animate-in fade-in duration-300">
+              <SettingsManager />
             </div>
           )}
 

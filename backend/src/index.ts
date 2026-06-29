@@ -23,6 +23,82 @@ app.get("/", (_req: Request, res: Response) => {
   res.json({ message: "¡El servidor de Abru Nails está corriendo perfecto! 💅" });
 });
 
+// --- SETTINGS ---
+app.get("/api/settings", async (_req: Request, res: Response) => {
+  try {
+    const settings = await prisma.setting.findMany();
+    const config = settings.reduce((acc: any, s) => ({ ...acc, [s.key]: s.value }), {});
+    if (!config.bufferTime) config.bufferTime = "15";
+    res.json(config);
+  } catch (error) {
+    res.status(500).json({ error: "Error" });
+  }
+});
+
+app.put("/api/settings", async (req: Request, res: Response) => {
+  try {
+    const settings = req.body;
+    for (const [key, value] of Object.entries(settings)) {
+      await prisma.setting.upsert({
+        where: { key },
+        update: { value: String(value) },
+        create: { key, value: String(value) }
+      });
+    }
+    res.json({ message: "Guardado" });
+  } catch (error) {
+    res.status(500).json({ error: "Error" });
+  }
+});
+
+// --- ADDONS ---
+app.get("/api/addons", async (_req: Request, res: Response) => {
+  try {
+    const addons = await prisma.addon.findMany({
+      orderBy: { name: 'asc' }
+    });
+    res.json(addons);
+  } catch (error) {
+    res.status(500).json({ error: "Error" });
+  }
+});
+
+app.post("/api/addons", async (req: Request, res: Response) => {
+  try {
+    const { name, price, duration } = req.body;
+    const newAddon = await prisma.addon.create({
+      data: { name, price: Number(price), duration: Number(duration) }
+    });
+    res.status(201).json(newAddon);
+  } catch (error) {
+    res.status(500).json({ error: "Error" });
+  }
+});
+
+app.put("/api/addons/:id", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, price, duration } = req.body;
+    const updatedAddon = await prisma.addon.update({
+      where: { id: String(id) },
+      data: { name, price: Number(price), duration: Number(duration) }
+    });
+    res.json(updatedAddon);
+  } catch (error) {
+    res.status(500).json({ error: "Error" });
+  }
+});
+
+app.delete("/api/addons/:id", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.addon.delete({ where: { id: String(id) } });
+    res.json({ message: "Eliminado" });
+  } catch (error) {
+    res.status(500).json({ error: "Error" });
+  }
+});
+
 // --- CATEGORIES ---
 
 app.get("/api/categories", async (_req: Request, res: Response) => {
@@ -213,7 +289,8 @@ app.get("/api/appointments", async (_req: Request, res: Response) => {
     const appointments = await prisma.appointment.findMany({
       include: {
         client: true,
-        service: true
+        service: true,
+        addons: true
       },
       orderBy: { date: 'asc' }
     });
@@ -226,18 +303,38 @@ app.get("/api/appointments", async (_req: Request, res: Response) => {
 
 app.post("/api/appointments", async (req: Request, res: Response) => {
   try {
-    const { clientId, serviceId, date, status } = req.body;
+    const { clientId, serviceId, date, status, addonIds } = req.body;
     
+    const service = await prisma.service.findUnique({ where: { id: String(serviceId) } });
+    if (!service) return res.status(404).json({ error: "Servicio no encontrado" });
+
+    let totalDuration = service.duration;
+    let totalPrice = service.price;
+
+    const addonsToConnect: { id: string }[] = [];
+    if (addonIds && Array.isArray(addonIds) && addonIds.length > 0) {
+      const addons = await prisma.addon.findMany({ where: { id: { in: addonIds } } });
+      addons.forEach(a => {
+        totalDuration += a.duration;
+        totalPrice += a.price;
+        addonsToConnect.push({ id: a.id });
+      });
+    }
+
     const newAppointment = await prisma.appointment.create({
       data: { 
         date: new Date(date),
         status: status || "pendiente",
         client: { connect: { id: String(clientId) } },
-        service: { connect: { id: String(serviceId) } }
+        service: { connect: { id: String(serviceId) } },
+        addons: { connect: addonsToConnect },
+        totalDuration,
+        totalPrice
       },
       include: {
         client: true,
-        service: true
+        service: true,
+        addons: true
       }
     });
     
@@ -251,22 +348,90 @@ app.post("/api/appointments", async (req: Request, res: Response) => {
 app.put("/api/appointments/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { date, status } = req.body;
-    
+    const { status } = req.body;
     const updatedAppointment = await prisma.appointment.update({
       where: { id: String(id) },
-      data: { 
-        ...(date && { date: new Date(date) }), 
-        ...(status && { status })              
-      }
+      data: { status },
+      include: { client: true, service: true, addons: true }
     });
-    
-    res.json({ message: "Turno actualizado", data: updatedAppointment });
+    res.json({ message: "Estado actualizado", data: updatedAppointment });
   } catch (error) {
-    console.error("Error al actualizar turno:", error);
+    console.error("Error al actualizar estado:", error);
     res.status(500).json({ error: "No se pudo actualizar el turno" });
   }
 });
+
+// --- AVAILABILITY ENGINE ---
+app.get("/api/availability", async (req: Request, res: Response) => {
+  try {
+    const { date, duration } = req.query;
+    if (!date || !duration) return res.status(400).json({ error: "Faltan datos" });
+
+    const reqDuration = Number(duration);
+    
+    const bufferSetting = await prisma.setting.findUnique({ where: { key: "bufferTime" } });
+    const bufferTime = bufferSetting ? Number(bufferSetting.value) : 15;
+    
+    const totalReqTime = reqDuration + bufferTime;
+
+    // The date comes in as local string YYYY-MM-DD from frontend, we parse it as local day start
+    // Because date is just date string, new Date(`${date}T00:00:00`) is local time.
+    const queryDate = new Date(`${date}T00:00:00-03:00`); 
+    if (isNaN(queryDate.getTime())) return res.status(400).json({ error: "Fecha inválida" });
+
+    const nextDate = new Date(queryDate);
+    nextDate.setDate(nextDate.getDate() + 1);
+
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        date: {
+          gte: queryDate,
+          lt: nextDate
+        },
+        status: { not: "cancelado" }
+      },
+      orderBy: { date: 'asc' }
+    });
+
+    const slots = [];
+    let current = new Date(queryDate);
+    current.setHours(9, 0, 0, 0); 
+    
+    const endOfDay = new Date(queryDate);
+    endOfDay.setHours(19, 0, 0, 0); 
+
+    while (current < endOfDay) {
+      const slotEnd = new Date(current.getTime() + totalReqTime * 60000);
+      
+      if (slotEnd > endOfDay) {
+        break; 
+      }
+
+      let overlap = false;
+      for (const app of appointments) {
+        const appStart = app.date;
+        const appEnd = new Date(appStart.getTime() + (app.totalDuration + bufferTime) * 60000);
+        
+        if (current < appEnd && slotEnd > appStart) {
+          overlap = true;
+          break;
+        }
+      }
+
+      if (!overlap) {
+        slots.push(current.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }));
+      }
+
+      current = new Date(current.getTime() + 30 * 60000);
+    }
+
+    res.json({ slots });
+  } catch (error) {
+    console.error("Error en availability:", error);
+    res.status(500).json({ error: "Error interno" });
+  }
+});
+
 
 app.delete("/api/appointments/:id", async (req: Request, res: Response) => {
   try {
