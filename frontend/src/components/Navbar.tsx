@@ -52,6 +52,19 @@ export default function Navbar() {
               Servicios
             </Link>
 
+            {user && !isAdmin && (
+              <Link
+                to="/mis-turnos"
+                className={`transition-colors ${
+                  isActive("/mis-turnos")
+                    ? "text-[var(--rose-600)] font-medium"
+                    : "text-[var(--rose-700)] hover:text-[var(--rose-600)]"
+                }`}
+              >
+                Mis Turnos
+              </Link>
+            )}
+
             <Link
               to="/reservar"
               className="px-6 py-2 bg-[var(--rose-600)] text-white rounded-full hover:bg-[var(--rose-700)] transition-colors"
@@ -129,6 +142,20 @@ export default function Navbar() {
               >
                 Servicios
               </Link>
+
+              {user && !isAdmin && (
+                <Link
+                  to="/mis-turnos"
+                  className={`px-4 py-2 rounded-lg ${
+                    isActive("/mis-turnos")
+                      ? "bg-[var(--rose-100)] text-[var(--rose-600)] font-medium"
+                      : "text-[var(--rose-700)] hover:bg-[var(--rose-50)]"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Mis Turnos
+                </Link>
+              )}
 
               {isAdmin && (
                 <Link
