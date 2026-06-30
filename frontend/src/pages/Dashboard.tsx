@@ -5,6 +5,7 @@ import ClientManager from "../components/dashboard/ClientManager";
 import CategoryManager from "../components/dashboard/CategoryManager";
 import AddonManager from "../components/dashboard/AddonManager";
 import SettingsManager from "../components/dashboard/SettingsManager";
+import UserManager from "../components/dashboard/UserManager";
 import { 
   LayoutDashboard, 
   CalendarDays, 
@@ -17,7 +18,8 @@ import {
   Users,
   Tags,
   PlusSquare,
-  Settings
+  Settings,
+  UserCog
 } from "lucide-react";
 import Title from "../components/ui/Title";
 import Card from "../components/ui/Card";
@@ -168,6 +170,18 @@ export default function Dashboard() {
           >
             <Users className="w-5 h-5" />
             <span className="font-medium">Clientes</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab("usuarios")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer ${
+              activeTab === "usuarios" 
+                ? "bg-[var(--rose-600)] text-white shadow-md" 
+                : "text-[var(--rose-700)] hover:bg-[var(--rose-50)]"
+            }`}
+          >
+            <UserCog className="w-5 h-5" />
+            <span className="font-medium">Usuarios</span>
           </button>
 
           <button 
@@ -392,6 +406,17 @@ export default function Dashboard() {
                 <p className="text-[var(--rose-700)]">Gestioná los opcionales como retiro o nail art.</p>
               </header>
               <AddonManager />
+            </div>
+          )}
+
+          {/* VISTA: USUARIOS           */}
+          {activeTab === "usuarios" && (
+            <div className="animate-in fade-in duration-300">
+              <header className="mb-8">
+                <Title level={1}>Equipo y Permisos</Title>
+                <p className="text-[var(--rose-700)]">Gestioná los accesos de tu equipo.</p>
+              </header>
+              <UserManager />
             </div>
           )}
 

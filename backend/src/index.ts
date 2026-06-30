@@ -376,8 +376,6 @@ app.get("/api/availability", async (req: Request, res: Response) => {
     
     const totalReqTime = reqDuration + bufferTime;
 
-    // The date comes in as local string YYYY-MM-DD from frontend, we parse it as local day start
-    // Because date is just date string, new Date(`${date}T00:00:00`) is local time.
     const queryDate = new Date(`${date}T00:00:00-03:00`); 
     if (isNaN(queryDate.getTime())) return res.status(400).json({ error: "Fecha inválida" });
 
@@ -459,18 +457,24 @@ app.post("/api/auth/register", async (req: Request, res: Response): Promise<any>
 
     const hashedPassword = await bcrypt.hash(password, 10);
     
+    const userCount = await prisma.user.count();
+    
+    const finalRole = userCount === 0 ? (role || "admin") : "cliente";
+
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        role: role || "cliente",
-        client: {
-          create: {
-            name: name,
-            phone: phone || "Sin especificar",
+        role: finalRole,
+        ...(finalRole === "cliente" && {
+          client: {
+            create: {
+              name: name,
+              phone: phone || "Sin especificar",
+            }
           }
-        }
+        })
       },
       include: {
         client: true 
@@ -512,6 +516,41 @@ app.post("/api/auth/login", async (req: Request, res: Response): Promise<any> =>
   } catch (error) {
     console.error("Error en login:", error);
     res.status(500).json({ error: "Error al iniciar sesión" });
+  }
+});
+
+app.get("/api/users", async (req: Request, res: Response) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+      orderBy: { createdAt: 'asc' }
+    });
+    res.json(users);
+  } catch (error) {
+    console.error("Error al obtener usuarios:", error);
+    res.status(500).json({ error: "Error al cargar los usuarios" });
+  }
+});
+
+app.put("/api/users/:id/role", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    
+    if (role !== "admin" && role !== "cliente") {
+      return res.status(400).json({ error: "Rol inválido" });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: String(id) },
+      data: { role },
+      select: { id: true, name: true, email: true, role: true }
+    });
+    
+    res.json({ message: "Rol actualizado", data: updatedUser });
+  } catch (error) {
+    console.error("Error al actualizar rol:", error);
+    res.status(500).json({ error: "No se pudo actualizar el rol" });
   }
 });
 
