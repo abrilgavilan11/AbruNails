@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Calendar, Clock, User, CheckCircle, MessageCircle, Loader2, UserCircle, Phone, PlusSquare, Plus } from "lucide-react";
 import Title from "../components/ui/Title";
 import Button from "../components/ui/Button";
+import { useAuth } from "../context/AuthContext";
 
 type BookingStep = 1 | 2 | 3 | 4 | 5;
 
@@ -27,6 +28,8 @@ interface Professional {
 }
 
 export default function Booking() {
+  const { user } = useAuth();
+  
   const [currentStep, setCurrentStep] = useState<BookingStep>(1);
   const [selectedService, setSelectedService] = useState<ServiceOption | null>(null);
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
@@ -34,7 +37,7 @@ export default function Booking() {
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
   
-  const [clientName, setClientName] = useState("");
+  const [clientName, setClientName] = useState(user?.name || "");
   const [clientPhone, setClientPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -155,7 +158,12 @@ export default function Booking() {
       const clientRes = await fetch("http://localhost:3000/api/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: clientName, phone: clientPhone, isVIP: false }),
+        body: JSON.stringify({ 
+          name: clientName, 
+          phone: clientPhone, 
+          isVIP: false,
+          userId: user?.id || null
+        }),
       });
       
       if (!clientRes.ok) throw new Error("Error al registrar clienta");

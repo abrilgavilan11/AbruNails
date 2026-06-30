@@ -248,14 +248,27 @@ app.get("/api/clients", async (_req: Request, res: Response) => {
   }
 });
 
-app.post("/api/clients", async (req: Request, res: Response) => {
+app.post("/api/clients", async (req: Request, res: Response): Promise<any> => {
   try {
-    const { name, phone, isVIP } = req.body;
+    const { name, phone, isVIP, userId } = req.body;
+
+    if (userId) {
+      const existingClient = await prisma.client.findUnique({ where: { userId } });
+      if (existingClient) {
+        const updated = await prisma.client.update({
+          where: { id: existingClient.id },
+          data: { phone, name }
+        });
+        return res.status(200).json({ message: "Cliente recuperado", data: updated });
+      }
+    }
+
     const newClient = await prisma.client.create({
       data: { 
         name, 
         phone, 
-        isVIP: Boolean(isVIP) 
+        isVIP: Boolean(isVIP),
+        userId: userId || null
       }
     });
     res.status(201).json({ message: "¡Clienta registrada con éxito!", data: newClient });
