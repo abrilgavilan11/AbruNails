@@ -20,7 +20,7 @@ export default function FeaturedServices() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const response = await fetch('https://abrunails.onrender.com/api/services');
+        const response = await fetch('http://localhost:3000/api/services');
         if (!response.ok) throw new Error('Error al conectar con la API');
         
         const data = await response.json();

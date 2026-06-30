@@ -63,9 +63,9 @@ export default function AgendaView() {
   const fetchData = async () => {
     try {
       const [aptsRes, clientsRes, servicesRes] = await Promise.all([
-        fetch("https://abrunails.onrender.com/api/appointments"),
-        fetch("https://abrunails.onrender.com/api/clients"),
-        fetch("https://abrunails.onrender.com/api/services")
+        fetch("http://localhost:3000/api/appointments"),
+        fetch("http://localhost:3000/api/clients"),
+        fetch("http://localhost:3000/api/services")
       ]);
 
       const aptsData = await aptsRes.json();
@@ -120,7 +120,7 @@ export default function AgendaView() {
     };
 
     try {
-      const response = await fetch("https://abrunails.onrender.com/api/appointments", {
+      const response = await fetch("http://localhost:3000/api/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(appointmentData),
