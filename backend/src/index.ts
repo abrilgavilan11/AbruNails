@@ -232,6 +232,12 @@ app.delete("/api/services/:id", async (req: Request, res: Response) => {
 app.get("/api/clients", async (_req: Request, res: Response) => {
   try {
     const clients = await prisma.client.findMany({
+      where: {
+        OR: [
+          { user: null },
+          { user: { role: { not: "admin" } } }
+        ]
+      },
       orderBy: { name: 'asc' }
     });
     res.json(clients);

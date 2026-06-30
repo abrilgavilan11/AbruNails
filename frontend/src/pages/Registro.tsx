@@ -20,7 +20,7 @@ export default function Registro() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("https://abrunails.onrender.com/api/auth/register", {
+      const response = await fetch("http://localhost:3000/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password, role }),
@@ -116,17 +116,6 @@ export default function Registro() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-[var(--rose-900)] mb-2">Rol (Solo para pruebas)</label>
-              <select 
-                value={role} 
-                onChange={(e) => setRole(e.target.value)}
-                className="block w-full px-3 py-3 border-2 border-[var(--rose-200)] rounded-lg focus:ring-2 focus:ring-[var(--rose-400)] bg-white text-[var(--rose-900)] outline-none"
-              >
-                <option value="cliente">Cliente normal</option>
-                <option value="admin">Administradora</option>
-              </select>
-            </div>
 
             <button
               type="submit"
