@@ -97,7 +97,7 @@ export default function Navbar() {
             ) : (
               <Link
                 to="/admin/login"
-                title="Portal Admin"
+                title="Iniciar Sesión"
                 className={`p-2 rounded-full transition-colors ${
                   isActive("/admin/login")
                     ? "bg-[var(--rose-100)] text-[var(--rose-600)]"
@@ -208,7 +208,7 @@ export default function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <Lock className="w-4 h-4" />
-                  Portal Admin
+                  Iniciar Sesión
                 </Link>
               )}
             </div>

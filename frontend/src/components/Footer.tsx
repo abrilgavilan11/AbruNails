@@ -38,7 +38,7 @@ export default function Footer() {
                 to="/admin/login"
                 className="text-xs text-[var(--rose-400)] hover:text-[var(--rose-300)] transition-colors"
               >
-                Acceso Portal Admin
+                Acceso a tu cuenta
               </Link>
             </div>
           </div>
