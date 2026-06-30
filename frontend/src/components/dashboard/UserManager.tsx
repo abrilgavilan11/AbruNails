@@ -17,7 +17,7 @@ export default function UserManager() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/users");
+      const response = await fetch("https://abrunails.onrender.com/api/users");
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
@@ -37,7 +37,7 @@ export default function UserManager() {
     if (!window.confirm(`¿Seguro que querés cambiar el rol a ${newRole.toUpperCase()}?`)) return;
 
     try {
-      const response = await fetch(`http://localhost:3000/api/users/${userId}/role`, {
+      const response = await fetch(`https://abrunails.onrender.com/api/users/${userId}/role`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: newRole }),
