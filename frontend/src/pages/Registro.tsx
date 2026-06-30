@@ -7,7 +7,7 @@ export default function Registro() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("cliente");
+  const role = "cliente";
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
