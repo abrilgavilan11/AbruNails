@@ -30,6 +30,20 @@ export default function CatalogManager() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [editingService, setEditingService] = useState<Service | null>(null);
 
+  const [imageMode, setImageMode] = useState<"url" | "upload">("url");
+  const [imageBase64, setImageBase64] = useState<string>("");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageBase64(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const fetchCategories = async () => {
     try {
       const response = await fetch("https://abrunails.onrender.com/api/categories");
@@ -59,11 +73,15 @@ export default function CatalogManager() {
 
   const openCreateModal = () => {
     setEditingService(null);
+    setImageMode("url");
+    setImageBase64("");
     setIsModalOpen(true);
   };
 
   const openEditModal = (service: Service) => {
     setEditingService(service);
+    setImageMode("url");
+    setImageBase64(service.image || "");
     setIsModalOpen(true);
   };
 
@@ -87,13 +105,17 @@ export default function CatalogManager() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
+    const imageFinal = imageMode === "url" 
+      ? (formData.get("imageUrl") as string || "")
+      : imageBase64;
+
     const serviceData = {
       name: formData.get("name"),
       categoryId: formData.get("categoryId"),
       duration: formData.get("duration"),
       price: formData.get("price"),
       description: formData.get("description"),
-      image: formData.get("image") || "",
+      image: imageFinal || editingService?.image || "",
     };
 
     const method = editingService ? "PUT" : "POST";
@@ -259,9 +281,44 @@ export default function CatalogManager() {
           </div>
 
           <div>
-            <Label>URL de Imagen (Opcional)</Label>
-            <Input name="image" type="url" defaultValue={editingService?.image} placeholder="https://ejemplo.com/imagen.jpg" />
-            <p className="text-xs text-[var(--rose-500)] mt-1">Podés pegar el link directo de una imagen (Pinterest, Google, etc).</p>
+            <div className="flex items-center justify-between mb-2">
+              <Label>Imagen del Servicio</Label>
+              <div className="flex gap-2 text-sm bg-rose-50 rounded-lg p-1">
+                <button 
+                  type="button" 
+                  onClick={() => setImageMode("url")} 
+                  className={`px-3 py-1 rounded-md transition-colors ${imageMode === "url" ? "bg-white text-rose-700 shadow-sm font-medium" : "text-rose-500"}`}
+                >
+                  URL
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setImageMode("upload")} 
+                  className={`px-3 py-1 rounded-md transition-colors ${imageMode === "upload" ? "bg-white text-rose-700 shadow-sm font-medium" : "text-rose-500"}`}
+                >
+                  Subir
+                </button>
+              </div>
+            </div>
+
+            {imageMode === "url" ? (
+              <>
+                <Input name="imageUrl" type="url" defaultValue={editingService?.image && !editingService.image.startsWith('data:') ? editingService.image : ""} placeholder="https://ejemplo.com/imagen.jpg" />
+                <p className="text-xs text-[var(--rose-500)] mt-1">Podés pegar el link directo de una imagen (Pinterest, Google, etc).</p>
+              </>
+            ) : (
+              <div className="border-2 border-dashed border-[var(--rose-200)] rounded-lg p-4 text-center hover:border-[var(--rose-400)] transition-colors">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileChange} 
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-rose-50 file:text-rose-700 hover:file:bg-rose-100 cursor-pointer"
+                />
+                {(imageBase64 || (editingService?.image && editingService.image.startsWith('data:'))) && (
+                  <p className="text-xs text-green-600 mt-2 font-medium">¡Imagen cargada correctamente!</p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4 mt-6 border-t border-[var(--rose-200)]">
