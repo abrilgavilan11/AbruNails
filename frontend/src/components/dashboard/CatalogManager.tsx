@@ -46,7 +46,7 @@ export default function CatalogManager() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch("https://abrunails.onrender.com/api/categories");
+      const response = await fetch("http://localhost:3000/api/categories");
       const data = await response.json();
       setCategories(data);
     } catch (error) {
@@ -56,7 +56,7 @@ export default function CatalogManager() {
 
   const fetchServices = async () => {
     try {
-      const response = await fetch("https://abrunails.onrender.com/api/services");
+      const response = await fetch("http://localhost:3000/api/services");
       const data = await response.json();
       setServices(data);
     } catch (error) {
@@ -89,7 +89,7 @@ export default function CatalogManager() {
     if (!window.confirm("¿Estás segura de que querés eliminar este servicio de forma permanente?")) return;
     
     try {
-      const response = await fetch(`https://abrunails.onrender.com/api/services/${id}`, {
+      const response = await fetch(`http://localhost:3000/api/services/${id}`, {
         method: "DELETE",
       });
 
@@ -120,8 +120,8 @@ export default function CatalogManager() {
 
     const method = editingService ? "PUT" : "POST";
     const url = editingService 
-      ? `https://abrunails.onrender.com/api/services/${editingService.id}`
-      : "https://abrunails.onrender.com/api/services";
+      ? `http://localhost:3000/api/services/${editingService.id}`
+      : "http://localhost:3000/api/services";
 
     try {
       const response = await fetch(url, {
@@ -133,8 +133,12 @@ export default function CatalogManager() {
       if (response.ok) {
         setIsModalOpen(false);
         fetchServices();
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        alert("Error al guardar: " + (errData.error || response.statusText));
       }
     } catch (error) {
+      alert("Error de red al intentar guardar el servicio.");
       console.error("Error guardando el servicio:", error);
     }
   };
