@@ -23,7 +23,7 @@ export default function ClientManager() {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/clients");
+      const response = await fetch("https://abrunails.onrender.com/api/clients");
       const data = await response.json();
       setClients(data);
     } catch (error) {
@@ -50,7 +50,7 @@ export default function ClientManager() {
   const handleDelete = async (id: string) => {
     if (!window.confirm("¿Seguro que querés eliminar a esta clienta?")) return;
     try {
-      const response = await fetch(`http://localhost:3000/api/clients/${id}`, { method: "DELETE" });
+      const response = await fetch(`https://abrunails.onrender.com/api/clients/${id}`, { method: "DELETE" });
       if (response.ok) fetchClients();
     } catch (error) {
       console.error("Error eliminando cliente:", error);
@@ -69,8 +69,8 @@ export default function ClientManager() {
 
     const method = editingClient ? "PUT" : "POST";
     const url = editingClient 
-      ? `http://localhost:3000/api/clients/${editingClient.id}`
-      : "http://localhost:3000/api/clients";
+      ? `https://abrunails.onrender.com/api/clients/${editingClient.id}`
+      : "https://abrunails.onrender.com/api/clients";
 
     try {
       const response = await fetch(url, {

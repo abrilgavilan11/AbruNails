@@ -21,7 +21,7 @@ export default function CategoryManager() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/categories");
+      const response = await fetch("https://abrunails.onrender.com/api/categories");
       const data = await response.json();
       setCategories(data);
     } catch (error) {
@@ -49,7 +49,7 @@ export default function CategoryManager() {
     if (!window.confirm("¿Estás segura de que querés eliminar esta categoría de forma permanente?")) return;
     
     try {
-      const response = await fetch(`http://localhost:3000/api/categories/${id}`, {
+      const response = await fetch(`https://abrunails.onrender.com/api/categories/${id}`, {
         method: "DELETE",
       });
 
@@ -71,8 +71,8 @@ export default function CategoryManager() {
 
     const method = editingCategory ? "PUT" : "POST";
     const url = editingCategory 
-      ? `http://localhost:3000/api/categories/${editingCategory.id}`
-      : "http://localhost:3000/api/categories";
+      ? `https://abrunails.onrender.com/api/categories/${editingCategory.id}`
+      : "https://abrunails.onrender.com/api/categories";
 
     try {
       const response = await fetch(url, {
