@@ -171,7 +171,7 @@ app.get("/api/services", async (_req: Request, res: Response) => {
 
 app.post("/api/services", async (req: Request, res: Response) => {
   try {
-    const { name, description, price, duration, categoryId } = req.body;
+    const { name, description, price, duration, categoryId, image } = req.body;
 
     const newService = await prisma.service.create({
       data: {
@@ -180,6 +180,7 @@ app.post("/api/services", async (req: Request, res: Response) => {
         price: Number(price),
         duration: Number(duration),
         categoryId,
+        image: image || null
       }
     });
 
@@ -193,7 +194,7 @@ app.post("/api/services", async (req: Request, res: Response) => {
 app.put("/api/services/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, description, price, duration, categoryId } = req.body;
+    const { name, description, price, duration, categoryId, image } = req.body;
 
     const updatedService = await prisma.service.update({
       where: { id: String(id) }, 
@@ -203,6 +204,7 @@ app.put("/api/services/:id", async (req: Request, res: Response) => {
         price: Number(price),
         duration: Number(duration),
         categoryId,
+        image: image || null
       }
     });
     res.json({ message: "Servicio actualizado", data: updatedService });

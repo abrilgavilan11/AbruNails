@@ -12,6 +12,7 @@ interface Service {
   description: string;
   price: number;
   duration: number;
+  image?: string;
   category?: { id: string; name: string };
 }
 
@@ -92,6 +93,7 @@ export default function CatalogManager() {
       duration: formData.get("duration"),
       price: formData.get("price"),
       description: formData.get("description"),
+      image: formData.get("image") || "",
     };
 
     const method = editingService ? "PUT" : "POST";
@@ -148,6 +150,7 @@ export default function CatalogManager() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[var(--rose-50)] text-[var(--rose-900)] text-sm uppercase tracking-wider">
+                <th className="p-4 font-semibold">Imagen</th>
                 <th className="p-4 font-semibold">Servicio</th>
                 <th className="p-4 font-semibold">Categoría</th>
                 <th className="p-4 font-semibold">Duración</th>
@@ -158,19 +161,26 @@ export default function CatalogManager() {
             <tbody className="divide-y divide-[var(--rose-100)]">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-[var(--rose-500)] animate-pulse">
+                  <td colSpan={6} className="p-8 text-center text-[var(--rose-500)] animate-pulse">
                     Cargando servicios...
                   </td>
                 </tr>
               ) : filteredServices.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-[var(--rose-500)]">
+                  <td colSpan={6} className="p-8 text-center text-[var(--rose-500)]">
                     No se encontraron servicios.
                   </td>
                 </tr>
               ) : (
                 filteredServices.map((service) => (
                   <tr key={service.id} className="hover:bg-[var(--rose-50)/50] transition-colors">
+                    <td className="p-4">
+                      {service.image ? (
+                        <img src={service.image} alt={service.name} className="w-12 h-12 object-cover rounded-lg border border-[var(--rose-200)]" />
+                      ) : (
+                        <div className="w-12 h-12 bg-[var(--rose-100)] rounded-lg flex items-center justify-center text-[var(--rose-400)] text-xs font-bold">SIN IMG</div>
+                      )}
+                    </td>
                     <td className="p-4 font-medium text-[var(--rose-900)]">{service.name}</td>
                     <td className="p-4 text-[var(--rose-700)]">
                       <span className="bg-[var(--rose-100)] text-[var(--rose-800)] px-2 py-1 rounded text-xs font-semibold uppercase">
@@ -246,6 +256,12 @@ export default function CatalogManager() {
               placeholder="Detalles del servicio..."
               required
             ></textarea>
+          </div>
+
+          <div>
+            <Label>URL de Imagen (Opcional)</Label>
+            <Input name="image" type="url" defaultValue={editingService?.image} placeholder="https://ejemplo.com/imagen.jpg" />
+            <p className="text-xs text-[var(--rose-500)] mt-1">Podés pegar el link directo de una imagen (Pinterest, Google, etc).</p>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 mt-6 border-t border-[var(--rose-200)]">

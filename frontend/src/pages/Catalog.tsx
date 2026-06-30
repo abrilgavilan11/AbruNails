@@ -45,6 +45,15 @@ export default function Catalog() {
 
   const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=800&auto=format&fit=crop";
 
+  const groupedServices = services.reduce((acc, service) => {
+    const categoryName = service.category?.name || 'Sin Categoría';
+    if (!acc[categoryName]) {
+      acc[categoryName] = [];
+    }
+    acc[categoryName].push(service);
+    return acc;
+  }, {} as Record<string, Service[]>);
+
   return (
     <div className="bg-rose-50 py-12 px-4 sm:px-6 lg:px-8 font-sans min-h-screen relative">
       <div className="max-w-6xl mx-auto">
@@ -53,59 +62,63 @@ export default function Catalog() {
           <p className="text-gray-600 text-lg">Explorá nuestros servicios y preparate para brillar.</p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {services.length === 0 ? (
-            <p className="text-center col-span-full text-gray-500">Todavía no hay servicios disponibles.</p>
-          ) : (
-            services.map((service) => (
-              <div 
-                key={service.id} 
-                onClick={() => setSelectedService(service)}
-                className="bg-white rounded-2xl shadow-sm border border-rose-100 hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between cursor-pointer overflow-hidden group"
-              >
-                {/* Imagen del servicio */}
-                <div className="w-full h-48 overflow-hidden relative">
-                  <img 
-                    src={service.image || DEFAULT_IMAGE} 
-                    alt={service.name} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-rose-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                    {service.category?.name || 'Sin Categoría'}
-                  </div>
-                </div>
-
-                <div className="p-6 flex flex-col flex-grow">
-                  <h2 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-rose-600 transition-colors">
-                    {service.name}
-                  </h2>
-                  
-                  {/* Descripción corta */}
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2 leading-relaxed flex-grow">
-                    {service.description}
-                  </p>
-                  
-                  <div className="flex justify-between items-center border-t border-gray-100 pt-4 mb-4">
-                    <span className="text-xl font-black text-rose-500">
-                      ${service.price.toLocaleString('es-AR')}
-                    </span>
-                  </div>
-                  
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedService(service);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 bg-rose-50 text-rose-600 border border-rose-200 py-2.5 px-4 rounded-xl font-medium hover:bg-rose-100 hover:border-rose-300 transition-colors"
+        {services.length === 0 ? (
+          <p className="text-center text-gray-500">Todavía no hay servicios disponibles.</p>
+        ) : (
+          Object.entries(groupedServices).map(([categoryName, catServices]) => (
+            <div key={categoryName} className="mb-16">
+              <h2 className="text-3xl font-bold text-rose-800 mb-8 pb-3 border-b-2 border-rose-200">
+                {categoryName}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {catServices.map((service) => (
+                  <div 
+                    key={service.id} 
+                    onClick={() => setSelectedService(service)}
+                    className="bg-white rounded-2xl shadow-sm border border-rose-100 hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between cursor-pointer overflow-hidden group"
                   >
-                    <Info className="w-4 h-4" />
-                    Ver más detalles
-                  </button>
-                </div>
+                    {/* Imagen del servicio */}
+                    <div className="w-full h-48 overflow-hidden relative">
+                      <img 
+                        src={service.image || DEFAULT_IMAGE} 
+                        alt={service.name} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+
+                    <div className="p-6 flex flex-col flex-grow">
+                      <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-rose-600 transition-colors">
+                        {service.name}
+                      </h3>
+                      
+                      {/* Descripción corta */}
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-2 leading-relaxed flex-grow">
+                        {service.description}
+                      </p>
+                      
+                      <div className="flex justify-between items-center border-t border-gray-100 pt-4 mb-4">
+                        <span className="text-xl font-black text-rose-500">
+                          ${service.price.toLocaleString('es-AR')}
+                        </span>
+                      </div>
+                      
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedService(service);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 bg-rose-50 text-rose-600 border border-rose-200 py-2.5 px-4 rounded-xl font-medium hover:bg-rose-100 hover:border-rose-300 transition-colors"
+                      >
+                        <Info className="w-4 h-4" />
+                        Ver más detalles
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))
-          )}
-        </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* MODAL DE DETALLES */}
