@@ -263,6 +263,15 @@ app.post("/api/clients", async (req: Request, res: Response): Promise<any> => {
       }
     }
 
+    if (name && phone) {
+      const existingClient = await prisma.client.findFirst({
+        where: { name, phone }
+      });
+      if (existingClient) {
+        return res.status(200).json({ message: "Clienta existente recuperada", data: existingClient });
+      }
+    }
+
     const newClient = await prisma.client.create({
       data: { 
         name, 
