@@ -53,10 +53,10 @@ export default function AdminLogin() {
             <Shield className="w-8 h-8 text-[var(--rose-600)]" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-[var(--rose-900)] mb-2">
-            Portal de Administración
+            Iniciar Sesión
           </h1>
           <p className="text-[var(--rose-700)]">
-            Acceso seguro solo para personal autorizado
+            Acceso seguro a tu cuenta
           </p>
         </div>
 
@@ -82,7 +82,7 @@ export default function AdminLogin() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 border-2 border-[var(--rose-200)] rounded-lg focus:ring-2 focus:ring-[var(--rose-400)] focus:border-[var(--rose-600)] transition-all bg-white text-[var(--rose-900)] outline-none"
-                  placeholder="admin@abrunails.com"
+                  placeholder="tu@email.com"
                   required
                 />
               </div>
@@ -147,7 +147,7 @@ export default function AdminLogin() {
               ) : (
                 <>
                   <Lock className="w-5 h-5" />
-                  Ingreso Seguro
+                  Ingresar
                 </>
               )}
             </button>
@@ -158,10 +158,10 @@ export default function AdminLogin() {
               <Shield className="w-5 h-5 text-[var(--rose-600)] mt-0.5 flex-shrink-0" />
               <div>
                 <h3 className="text-sm font-semibold text-[var(--rose-900)] mb-1">
-                  Acceso Seguro
+                  Privacidad y Seguridad
                 </h3>
                 <p className="text-xs text-[var(--rose-700)]">
-                  Este portal está protegido. Todos los intentos de inicio de sesión son monitoreados y registrados.
+                  Tus datos personales y contraseñas están encriptados y protegidos.
                 </p>
               </div>
             </div>
@@ -170,7 +170,7 @@ export default function AdminLogin() {
 
         <div className="mt-6 text-center">
           <p className="text-xs text-[var(--rose-600)] mt-2">
-            Soporte: admin@abrunails.com
+            Soporte: contacto@abrunails.com
           </p>
         </div>
       </div>
